@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <title>もぐらたたきゲーム（改良版）</title>
+  <style>
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+      background: radial-gradient(circle at top, #22c55e, #022c22);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #022c22;
+    }
+
+    .game-wrapper {
+      background: #f9fafb;
+      border-radius: 18px;
+      padding: 18px 18px 20px;
+      width: 95%;
+      max-width: 430px;
+      box-shadow: 0 16px 40px rgba(15,23,42,0.6);
+    }
+
+    h1 {
+      margin: 0 0 6px;
+      text-align: center;
+      font-size: 1.5rem;
+      color: #111827;
+    }
+
+    .subtitle {
+      text-align: center;
+      font-size: 0.85rem;
+      color: #6b7280;
+      margin-bottom: 10px;
+      line-height: 1.4;
+    }
+
+    .top-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+
+    .info-box {
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: #ecfdf5;
+      font-size: 0.8rem;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      color: #047857;
+      font-weight: 600;
+    }
+
+    .difficulty-box {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 0.8rem;
+    }
+    .difficulty-box select {
+      font-size: 0.8rem;
+      padding: 3px 6px;
+      border-radius: 999px;
+      border: 1px solid #d1d5db;
+      background: #fff;
+    }
+
+    .buttons {
+      display: flex;
+      gap: 6px;
+    }
+
+    button {
+      border: none;
+      border-radius: 999px;
+      padding: 6px 12px;
+      font-size: 0.8rem;
+      cursor: pointer;
+      transition: transform 0.1s ease, box-shadow 0.1s ease, opacity 0.2s;
+      white-space: nowrap;
+    }
+
+    button:active {
+      transform: translateY(1px);
+      box-shadow: none;
+    }
+
+    #startButton {
+      background: #22c55e;
+      color: #064e3b;
+      box-shadow: 0 3px 10px rgba(34,197,94,0.4);
+    }
+
+    #resetButton {
+      background: #e5e7eb;
+      color: #374151;
+    }
+
+    #grid {
+      margin-top: 8px;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+    }
+
+    .hole {
+      width: 100%;
+      aspect-ratio: 1 / 1;
+      background: #e5e7eb;
+      border-radius: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-tap-highlight-color: rgba(0,0,0,0);
+      box-shadow: inset 0 4px 0 rgba(148,163,184,0.6);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .hole::before {
+      content: "";
+      position: absolute;
+      bottom: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 80%;
+      height: 26%;
+      background: #9ca3af;
+      border-radius: 999px;
+      opacity: 0.5;
+    }
+
+    .hole-content {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 80%;
+      height: 80%;
+    }
+
+    /* 黒い大きなモグラ */
+    .mole-body {
+      width: 90%;
+      height: 70%;
+      background: #111827;
+      border-radius: 999px 999px 40px 40px;
+      position: relative;
+      box-shadow: 0 4px 0 rgba(15,23,42,0.6);
+    }
+    .mole-face {
+      position: absolute;
+      top: 15%;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 70%;
+      height: 55%;
+      background: #fef3c7;
+      border-radius: 999px;
+    }
+    .mole-eye {
+      position: absolute;
+      top: 30%;
+      width: 10px;
+      height: 10px;
+      background: #111827;
+      border-radius: 50%;
+    }
+    .mole-eye.left { left: 30%; }
+    .mole-eye.right { right: 30%; }
+    .mole-mouth {
+      position: absolute;
+      bottom: 25%;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 40%;
+      height: 10px;
+      border-bottom: 3px solid #f97316;
+      border-radius: 0 0 999px 999px;
+    }
+
+    .dont-hit-img {
+      width: 85%;
+      height: 85%;
+      object-fit: cover;
+      border-radius: 50%;
+      box-shadow: 0 4px 0 rgba(148,163,184,0.8);
+    }
+
+    #message {
+      margin-top: 6px;
+      text-align: center;
+      min-height: 1.4em;
+      font-size: 0.9rem;
+      color: #111827;
+    }
+
+    .hint {
+      text-align: center;
+      margin-top: 4px;
+      font-size: 0.75rem;
+      color: #6b7280;
+    }
+
+    .bottom-info {
+      margin-top: 6px;
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.85rem;
+      color: #4b5563;
+    }
+  </style>
+</head>
+<body>
+  <div class="game-wrapper">
+    <h1>もぐらたたき</h1>
+    <div class="subtitle">
+      もぐらだけを素早くたたこう！<br>
+      メガネのおじさんをたたくとミスになります。
+    </div>
+
+    <div class="top-row">
+      <div class="info-box">
+        ⏱ <span id="timeLeft">30</span>s　
+        🎯 スコア：<span id="score">0</span>
+      </div>
+      <div class="difficulty-box">
+        難易度：
+        <select id="difficultySelect">
+          <option value="easy">かんたん</option>
+          <option value="normal" selected>ふつう</option>
+          <option value="hard">むずかしい</option>
+        </select>
+      </div>
+      <div class="buttons">
+        <button id="startButton">スタート</button>
+        <button id="resetButton">リセット</button>
+      </div>
+    </div>
+
+    <div id="grid"></div>
+
+    <div class="bottom-info">
+      <div>🔥 コンボ：<span id="combo">0</span></div>
+      <div>❌ ミス：<span id="miss">0</span></div>
+    </div>
+
+    <div id="message"></div>
+    <div class="hint">
+      PC：クリック ／ スマホ：タップ。<br>
+      もぐら以外をたたくとコンボが切れてミスが増えます。
+    </div>
+  </div>
+
+  <script>
+    // ========= 効果音（Web Audio API） =========
+    var audioCtx = null;
+
+    function initAudio() {
+      if (audioCtx) return;
+      try {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      } catch (e) {
+        audioCtx = null;
+      }
+    }
+
+    function ensureAudioRunning() {
+      if (!audioCtx) return;
+      if (audioCtx.state === "suspended") {
+        audioCtx.resume();
+      }
+    }
+
+    function playBeep(freq, duration, type, volume) {
+      if (!audioCtx) return;
+      ensureAudioRunning();
+
+      var osc = audioCtx.createOscillator();
+      var gain = audioCtx.createGain();
+
+      osc.type = type || "square";
+      osc.frequency.value = freq || 440;
+      gain.gain.value = (typeof volume === "number") ? volume : 0.2;
+
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+
+      osc.start();
+      setTimeout(function () {
+        osc.stop();
+      }, duration || 150);
+    }
+
+    function playHitSound() {
+      playBeep(880, 80, "square", 0.25);
+    }
+    function playMissSound() {
+      playBeep(220, 120, "sawtooth", 0.22);
+    }
+    function playGameOverSound() {
+      playBeep(440, 150, "triangle", 0.2);
+      setTimeout(function () {
+        playBeep(330, 200, "triangle", 0.18);
+      }, 180);
+    }
+
+    // ========= ゲーム設定 =========
+    var GAME_TIME = 30; // 秒
+
+    var DIFFICULTIES = {
+      easy:   { moleInterval: 900, badRate: 0.15 },
+      normal: { moleInterval: 700, badRate: 0.25 },
+      hard:   { moleInterval: 500, badRate: 0.35 }
+    };
+
+    var difficultySelect = document.getElementById("difficultySelect");
+    var currentDifficulty = DIFFICULTIES["normal"];
+
+    // ========= DOM =========
+    var grid = document.getElementById("grid");
+    var timeLeftSpan = document.getElementById("timeLeft");
+    var scoreSpan = document.getElementById("score");
+    var comboSpan = document.getElementById("combo");
+    var missSpan = document.getElementById("miss");
+    var message = document.getElementById("message");
+    var startButton = document.getElementById("startButton");
+    var resetButton = document.getElementById("resetButton");
+
+    // ========= 状態 =========
+    var holes = [];
+    var currentIndex = -1;
+    var currentType = null; // "mole" or "bad" or null
+    var score = 0;
+    var timeLeft = GAME_TIME;
+    var combo = 0;
+    var miss = 0;
+    var gameInterval = null;
+    var moleIntervalId = null;
+    var isRunning = false;
+
+    function createGrid() {
+      grid.innerHTML = "";
+      holes = [];
+      for (var i = 0; i < 9; i++) {
+        var hole = document.createElement("div");
+        hole.className = "hole";
+        hole.dataset.index = i;
+
+        hole.addEventListener("click", onHoleClick);
+        hole.addEventListener("touchstart", function(e) {
+          e.preventDefault();
+          onHoleClick.call(this, e);
+        }, { passive: false });
+
+        grid.appendChild(hole);
+        holes.push(hole);
+      }
+    }
+
+    function clearCurrent() {
+      if (currentIndex >= 0) {
+        var hole = holes[currentIndex];
+        hole.innerHTML = "";
+      }
+      currentIndex = -1;
+      currentType = null;
+    }
+
+    function showRandomTarget() {
+      clearCurrent();
+      var idx = Math.floor(Math.random() * holes.length);
+      currentIndex = idx;
+
+      var hole = holes[idx];
+      var content = document.createElement("div");
+      content.className = "hole-content";
+
+      // 一定確率で「叩いてはいけないキャラ」を出す
+      if (Math.random() < currentDifficulty.badRate) {
+        currentType = "bad";
+        var img = document.createElement("img");
+        img.src = "dont_hit.png";   // 同じフォルダに置いた画像
+        img.alt = "たたいてはいけないキャラ";
+        img.className = "dont-hit-img";
+        content.appendChild(img);
+      } else {
+        currentType = "mole";
+        var body = document.createElement("div");
+        body.className = "mole-body";
+        var face = document.createElement("div");
+        face.className = "mole-face";
+        var eyeL = document.createElement("div");
+        eyeL.className = "mole-eye left";
+        var eyeR = document.createElement("div");
+        eyeR.className = "mole-eye right";
+        var mouth = document.createElement("div");
+        mouth.className = "mole-mouth";
+
+        face.appendChild(eyeL);
+        face.appendChild(eyeR);
+        face.appendChild(mouth);
+        body.appendChild(face);
+        content.appendChild(body);
+      }
+
+      hole.appendChild(content);
+    }
+
+    function onHoleClick(e) {
+      if (!isRunning) return;
+      initAudio();
+      ensureAudioRunning();
+
+      var idx = parseInt(this.dataset.index, 10);
+      if (idx !== currentIndex || !currentType) {
+        // 何もいない場所をたたいた → ミス
+        miss++;
+        combo = 0;
+        missSpan.textContent = miss;
+        comboSpan.textContent = combo;
+        message.textContent = "はずれ…";
+        playMissSound();
+        return;
+      }
+
+      if (currentType === "mole") {
+        score++;
+        combo++;
+        scoreSpan.textContent = score;
+        comboSpan.textContent = combo;
+        message.textContent = "ナイスヒット！";
+        playHitSound();
+      } else if (currentType === "bad") {
+        miss++;
+        combo = 0;
+        missSpan.textContent = miss;
+        comboSpan.textContent = combo;
+        message.textContent = "あっ！叩いちゃダメな人でした…";
+        playMissSound();
+      }
+
+      clearCurrent();
+    }
+
+    function startGame() {
+      if (isRunning) return;
+      initAudio();
+      ensureAudioRunning();
+
+      // 難易度反映
+      currentDifficulty = DIFFICULTIES[difficultySelect.value];
+
+      isRunning = true;
+      score = 0;
+      timeLeft = GAME_TIME;
+      combo = 0;
+      miss = 0;
+      scoreSpan.textContent = score;
+      timeLeftSpan.textContent = timeLeft;
+      comboSpan.textContent = combo;
+      missSpan.textContent = miss;
+      message.textContent = "がんばって！";
+
+      gameInterval = setInterval(function() {
+        timeLeft--;
+        timeLeftSpan.textContent = timeLeft;
+        if (timeLeft <= 0) {
+          endGame();
+        }
+      }, 1000);
+
+      moleIntervalId = setInterval(showRandomTarget, currentDifficulty.moleInterval);
+      showRandomTarget();
+    }
+
+    function endGame() {
+      if (!isRunning) return;
+      isRunning = false;
+      clearInterval(gameInterval);
+      clearInterval(moleIntervalId);
+      gameInterval = null;
+      moleIntervalId = null;
+      clearCurrent();
+
+      message.textContent = "ゲーム終了！ スコア：" + score +
+        " ／ ミス：" + miss + " ／ 最大コンボ：" + combo;
+      playGameOverSound();
+    }
+
+    function resetGame() {
+      isRunning = false;
+      clearInterval(gameInterval);
+      clearInterval(moleIntervalId);
+      gameInterval = null;
+      moleIntervalId = null;
+
+      clearCurrent();
+      score = 0;
+      timeLeft = GAME_TIME;
+      combo = 0;
+      miss = 0;
+      scoreSpan.textContent = score;
+      timeLeftSpan.textContent = timeLeft;
+      comboSpan.textContent = combo;
+      missSpan.textContent = miss;
+      message.textContent = "";
+    }
+
+    startButton.onclick = startGame;
+    resetButton.onclick = resetGame;
+
+    difficultySelect.onchange = function() {
+      // ゲーム中に変えても、次のスタートから反映
+      currentDifficulty = DIFFICULTIES[difficultySelect.value];
+    };
+
+    // 初期化
+    createGrid();
+    resetGame();
+  </script>
+</body>
+</html>

@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8" />
+<title>ゲームセンター</title>
+<style>
+  body {
+    font-family: system-ui, sans-serif;
+    background: #f0f9ff;
+    padding: 40px;
+    text-align: center;
+  }
+  h1 { margin-bottom: 20px; }
+  .game-list {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    width: 300px;
+    margin: 0 auto;
+  }
+  a {
+    display: block;
+    padding: 14px;
+    background: white;
+    border-radius: 12px;
+    text-decoration: none;
+    font-size: 1.4rem;
+    color: #0f172a;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  }
+  a:hover { background: #e0f2fe; }
+</style>
+</head>
+<body>
+<h1>🎮 My Games</h1>
+<div class="game-list">
+  <a href="./number/">数字当てゲーム</a>
+  <a href="./block/">ブロック避けゲーム</a>
+  <a href="./maze/">迷路ゲーム</a>
+  <a href="./mole/">もぐらたたきゲーム</a>
+</div>
+</body>
+</html>

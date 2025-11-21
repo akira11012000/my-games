@@ -1,43 +1,74 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-<meta charset="UTF-8" />
-<title>ゲームセンター</title>
-<style>
-  body {
-    font-family: system-ui, sans-serif;
-    background: #f0f9ff;
-    padding: 40px;
-    text-align: center;
-  }
-  h1 { margin-bottom: 20px; }
-  .game-list {
-    display: flex;
-    flex-direction: column;
-    gap: 18px;
-    width: 300px;
-    margin: 0 auto;
-  }
-  a {
-    display: block;
-    padding: 14px;
-    background: white;
-    border-radius: 12px;
-    text-decoration: none;
-    font-size: 1.4rem;
-    color: #0f172a;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-  }
-  a:hover { background: #e0f2fe; }
-</style>
+  <meta charset="UTF-8" />
+  <!-- ★ここがポイント：スマホ幅に合わせる -->
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>My Games</title>
+  <style>
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      padding: 24px 16px;
+      font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+      background: #e5f4ff;
+      display: flex;
+      justify-content: center;
+    }
+
+    .wrapper {
+      width: 100%;
+      max-width: 420px;
+      text-align: center;
+    }
+
+    h1 {
+      margin: 8px 0 16px;
+      font-size: 1.6rem;
+      color: #111827;
+    }
+
+    .gamepad {
+      font-size: 1.7rem;
+      margin-right: 6px;
+    }
+
+    .game-list {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      margin-top: 8px;
+    }
+
+    a {
+      display: block;
+      padding: 12px 16px;
+      background: #ffffff;
+      border-radius: 999px;
+      text-decoration: none;
+      font-size: 1.1rem;
+      color: #111827;
+      box-shadow: 0 4px 10px rgba(15,23,42,0.12);
+    }
+
+    a:active {
+      transform: translateY(1px);
+      box-shadow: none;
+      background: #e0f2fe;
+    }
+  </style>
 </head>
 <body>
-<h1>🎮 My Games</h1>
-<div class="game-list">
-  <a href="./number/">数字当てゲーム</a>
-  <a href="./block/">ブロック避けゲーム</a>
-  <a href="./maze/">迷路ゲーム</a>
-  <a href="./mole/">もぐらたたきゲーム</a>
-</div>
+  <div class="wrapper">
+    <h1><span class="gamepad">🎮</span>My Games</h1>
+    <div class="game-list">
+      <a href="./number/">数字当てゲーム</a>
+      <a href="./block/">ブロック避けゲーム</a>
+      <a href="./maze/">迷路ゲーム</a>
+      <a href="./mole/">もぐらたたきゲーム</a>
+    </div>
+  </div>
 </body>
 </html>

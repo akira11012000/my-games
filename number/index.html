@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <title>数当てゲーム</title>
+
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: system-ui, sans-serif;
+      background: linear-gradient(135deg, #1e3c72, #2a5298);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+    }
+
+    .container {
+      background: #fff;
+      padding: 26px;
+      border-radius: 16px;
+      box-shadow: 0 12px 30px rgba(0,0,0,0.25);
+      width: 420px;
+    }
+
+    h1 {
+      text-align: center;
+      margin-top: 0;
+      color: #1e3c72;
+    }
+
+    .input-row {
+      display: flex;
+      gap: 8px;
+      justify-content: center;
+      margin-bottom: 12px;
+    }
+
+    input[type="number"] {
+      width: 120px;
+      padding: 8px 10px;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      font-size: 1rem;
+      text-align: center;
+    }
+
+    button {
+      padding: 8px 14px;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+      font-size: 0.9rem;
+    }
+
+    #guessButton {
+      background: #2a5298;
+      color: #fff;
+    }
+
+    #resetButton {
+      background: #e5e7eb;
+    }
+
+    #resetButton:disabled {
+      opacity: 0.4;
+    }
+
+    .status {
+      text-align: center;
+      margin-top: 10px;
+      min-height: 2.4em;
+    }
+
+    #historyList {
+      list-style: none;
+      background: #f9fafb;
+      padding: 0;
+      margin-top: 10px;
+      border-radius: 8px;
+      max-height: 120px;
+      overflow-y: auto;
+      border: 1px solid #e5e7eb;
+    }
+
+    #historyList li {
+      padding: 4px 10px;
+      border-bottom: 1px solid #e5e7eb;
+      font-family: monospace;
+    }
+
+    #historyList li:last-child {
+      border-bottom: none;
+    }
+
+    /* ミュートボタン */
+    #muteButton {
+      background: #ffe9a8;
+      border: 1px solid #e2c46e;
+      margin-top: 10px;
+      width: 100%;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <h1>数当てゲーム</h1>
+
+    <p style="text-align:center; margin-top:-5px;">
+      1〜100の数字を当てよう！<br>
+      チャンスは 7 回。
+    </p>
+
+    <div class="input-row">
+      <input type="number" id="guessInput" min="1" max="100" placeholder="1〜100" />
+      <button id="guessButton">決定！</button>
+      <button id="resetButton" disabled>もう一回</button>
+    </div>
+
+    <div class="status">
+      <div id="message"></div>
+      <div id="tries"></div>
+    </div>
+
+    <div class="history">
+      <p><b>入力履歴</b></p>
+      <ul id="historyList"></ul>
+    </div>
+
+    <button id="muteButton">🔊 BGM ON/OFF</button>
+  </div>
+
+  <script>
+    //=================================================
+    //  ▼ BGM（Web Audio API のループ音）
+    //=================================================
+    let audioCtx = null;
+    let bgmOsc = null;
+    let bgmGain = null;
+    let bgmEnabled = false;
+
+    function initAudio() {
+      if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      }
+    }
+
+    function startBGM() {
+      if (!audioCtx) return;
+      if (bgmEnabled) return;
+
+      bgmOsc = audioCtx.createOscillator();
+      bgmGain = audioCtx.createGain();
+
+      bgmOsc.type = "triangle";
+
+      // ♪ ピコピコ感を作る（音程を上下に揺らす）
+      let now = audioCtx.currentTime;
+      bgmOsc.frequency.setValueAtTime(220, now);
+      bgmOsc.frequency.linearRampToValueAtTime(260, now + 1);
+      bgmOsc.frequency.linearRampToValueAtTime(220, now + 2);
+
+      bgmOsc.frequency.setValueAtTime(220, now + 2);
+      bgmGain.gain.value = 0.08;
+
+      bgmOsc.connect(bgmGain);
+      bgmGain.connect(audioCtx.destination);
+
+      bgmOsc.start();
+      bgmEnabled = true;
+
+      // 自動ループ
+      setInterval(() => {
+        if (bgmOsc) {
+          let t = audioCtx.currentTime;
+          bgmOsc.frequency.setValueAtTime(220, t);
+          bgmOsc.frequency.linearRampToValueAtTime(260, t + 1);
+          bgmOsc.frequency.linearRampToValueAtTime(220, t + 2);
+        }
+      }, 2000);
+    }
+
+    function stopBGM() {
+      if (bgmOsc) {
+        try {
+          bgmOsc.stop();
+        } catch {}
+      }
+      bgmOsc = null;
+      bgmEnabled = false;
+    }
+
+    // ミュートボタン
+    document.getElementById("muteButton").addEventListener("click", () => {
+      initAudio();
+      if (bgmEnabled) stopBGM();
+      else startBGM();
+    });
+
+
+    //=================================================
+    //  ▼ 効果音（成功 / ミス / ゲームオーバー）
+    //=================================================
+    function playBeep(freq=440, duration=150) {
+      if (!audioCtx) return;
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = "sine";
+      osc.frequency.value = freq;
+      gain.gain.value = 0.2;
+
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+
+      osc.start();
+      setTimeout(() => osc.stop(), duration);
+    }
+
+    function playSuccess() {
+      playBeep(880, 120);
+      setTimeout(() => playBeep(1046, 150), 150);
+    }
+
+    function playMiss() {
+      playBeep(440, 120);
+    }
+
+    function playGameOver() {
+      playBeep(220, 400);
+    }
+
+    //=================================================
+    //  ▼ 数当てゲームロジック
+    //=================================================
+    let answer;
+    let maxTries = 7;
+    let currentTry;
+    let finished;
+    let history = [];
+
+    const input = document.getElementById("guessInput");
+    const guessButton = document.getElementById("guessButton");
+    const resetButton = document.getElementById("resetButton");
+    const message = document.getElementById("message");
+    const tries = document.getElementById("tries");
+    const historyList = document.getElementById("historyList");
+
+    function startNewGame() {
+      initAudio();
+      answer = Math.floor(Math.random() * 100) + 1;
+      currentTry = 0;
+      finished = false;
+      history = [];
+
+      message.textContent = "ゲーム開始！数字を入力してください。";
+      tries.textContent = `残りチャンス: ${maxTries}`;
+      historyList.innerHTML = "";
+      resetButton.disabled = true;
+
+      input.value = "";
+      input.focus();
+    }
+
+    function updateHistory() {
+      historyList.innerHTML = "";
+      history.forEach((h, i) => {
+        const li = document.createElement("li");
+        li.textContent = `${i + 1} 回目: ${h.guess}  ${h.arrow}`;
+        historyList.appendChild(li);
+      });
+    }
+
+    guessButton.addEventListener("click", () => {
+      initAudio();
+
+      if (finished) {
+        message.textContent = "ゲームは終了しています。「もう一回」で再スタート。";
+        return;
+      }
+
+      const value = Number(input.value);
+      if (!value || value < 1 || value > 100) {
+        message.textContent = "1〜100 の整数を入力してください。";
+        return;
+      }
+
+      currentTry++;
+
+      let arrow = "";
+      if (value === answer) {
+        message.textContent = `🎉 正解！ 正解は ${answer} 🎉`;
+        tries.textContent = `使った回数: ${currentTry}`;
+        finished = true;
+        resetButton.disabled = false;
+        arrow = "🎉";
+        playSuccess();
+      } else if (value < answer) {
+        message.textContent = "⬆️（もっと大きい）";
+        arrow = "⬆️";
+        playMiss();
+      } else {
+        message.textContent = "⬇️（もっと小さい）";
+        arrow = "⬇️";
+        playMiss();
+      }
+
+      history.push({ guess: value, arrow });
+      updateHistory();
+
+      // チャンス切れ
+      const remain = maxTries - currentTry;
+      if (!finished) {
+        if (remain <= 0) {
+          message.textContent = `❌ ゲームオーバー！ 正解は ${answer}`;
+          tries.textContent = "チャンスはもうありません";
+          finished = true;
+          resetButton.disabled = false;
+          playGameOver();
+        } else {
+          tries.textContent = `残りチャンス: ${remain}`;
+        }
+      }
+
+      input.value = "";
+      input.focus();
+    });
+
+    resetButton.addEventListener("click", startNewGame);
+    input.addEventListener("keydown", e => {
+      if (e.key === "Enter") guessButton.click();
+    });
+
+    window.onload = startNewGame;
+  </script>
+</body>
+</html

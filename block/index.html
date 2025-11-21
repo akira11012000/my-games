@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <title>ブロックよけゲーム（iPhone対応・効果音付き）</title>
+  <style>
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+      background: radial-gradient(circle at top, #4f46e5, #020617);
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      color: #0f172a;
+    }
+
+    .game-wrapper {
+      background: #f9fafb;
+      border-radius: 18px;
+      box-shadow: 0 16px 40px rgba(15, 23, 42, 0.6);
+      padding: 18px 18px 20px;
+      width: 95%;
+      max-width: 430px;
+    }
+
+    h1 {
+      margin: 0 0 6px;
+      text-align: center;
+      font-size: 1.5rem;
+      color: #111827;
+    }
+
+    .subtitle {
+      text-align: center;
+      font-size: 0.85rem;
+      color: #6b7280;
+      margin-bottom: 10px;
+      line-height: 1.4;
+    }
+
+    .top-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 8px;
+      flex-wrap: wrap;
+    }
+
+    .score-box {
+      padding: 6px 10px;
+      background: #eff6ff;
+      border-radius: 999px;
+      font-size: 0.85rem;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      color: #1d4ed8;
+      font-weight: 600;
+    }
+
+    .difficulty-box {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 0.85rem;
+    }
+
+    .difficulty-box select {
+      font-size: 0.8rem;
+      padding: 4px 8px;
+      border-radius: 999px;
+      border: 1px solid #d1d5db;
+      background: #ffffff;
+    }
+
+    .buttons {
+      display: flex;
+      gap: 6px;
+    }
+
+    button {
+      border: none;
+      border-radius: 999px;
+      padding: 6px 12px;
+      font-size: 0.8rem;
+      cursor: pointer;
+      transition: transform 0.1s ease, box-shadow 0.1s ease, opacity 0.2s;
+      white-space: nowrap;
+    }
+
+    button:active {
+      transform: translateY(1px);
+      box-shadow: none;
+    }
+
+    #startButton {
+      background: #22c55e;
+      color: #064e3b;
+      box-shadow: 0 3px 10px rgba(34, 197, 94, 0.4);
+    }
+
+    #restartButton {
+      background: #e5e7eb;
+      color: #374151;
+    }
+
+    #restartButton:disabled {
+      opacity: 0.4;
+      cursor: default;
+      box-shadow: none;
+    }
+
+    #gameCanvas {
+      display: block;
+      margin: 6px auto 4px;
+      background: linear-gradient(to bottom, #0b1120, #020617);
+      border-radius: 14px;
+      border: 1px solid #1f2937;
+    }
+
+    #message {
+      text-align: center;
+      margin-top: 4px;
+      min-height: 1.4em;
+      font-size: 0.9rem;
+      color: #111827;
+    }
+
+    .hint {
+      text-align: center;
+      margin-top: 4px;
+      font-size: 0.75rem;
+      color: #6b7280;
+    }
+
+    .touch-controls {
+      margin-top: 10px;
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+    }
+
+    .touch-button {
+      flex: 1;
+      padding: 10px 0;
+      border-radius: 999px;
+      border: none;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      background: #e0f2fe;
+      color: #0f172a;
+      box-shadow: 0 3px 10px rgba(30, 64, 175, 0.35);
+      -webkit-touch-callout: none;
+      -webkit-user-select: none;
+      -webkit-tap-highlight-color: rgba(0,0,0,0);
+      touch-action: none;
+    }
+
+    .touch-button:active {
+      transform: translateY(1px);
+      box-shadow: none;
+      background: #bfdbfe;
+    }
+
+    @media (max-width: 480px) {
+      .game-wrapper {
+        padding: 14px 12px 16px;
+      }
+      #gameCanvas {
+        width: 100%;
+        height: auto;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="game-wrapper">
+    <h1>ブロックよけゲーム</h1>
+    <div class="subtitle">
+      ← → キー または 下のボタンで左右に動かして、<br>
+      落ちてくるブロックをよけ続けよう！
+    </div>
+
+    <div class="top-row">
+      <div class="score-box">
+        🏆 スコア：<span id="scoreValue">0</span>
+      </div>
+
+      <div class="difficulty-box">
+        難易度：
+        <select id="difficultySelect">
+          <option value="easy">かんたん</option>
+          <option value="normal" selected>ふつう</option>
+          <option value="hard">むずかしい</option>
+        </select>
+      </div>
+
+      <div class="buttons">
+        <button id="startButton" onclick="onStartClick()">スタート</button>
+        <button id="restartButton" onclick="onRestartClick()" disabled>リスタート</button>
+      </div>
+    </div>
+
+    <canvas id="gameCanvas" width="360" height="480"></canvas>
+    <div id="message"></div>
+    <div class="hint">
+      スコアは「生き残った時間」です。高スコアを目指そう！
+    </div>
+
+    <div class="touch-controls">
+      <button id="leftBtn" class="touch-button"
+              onmousedown="leftDown()" onmouseup="leftUp()"
+              ontouchstart="leftDown(); return false;"
+              ontouchend="leftUp(); return false;"
+              ontouchcancel="leftUp(); return false;">
+        ◀ LEFT
+      </button>
+      <button id="rightBtn" class="touch-button"
+              onmousedown="rightDown()" onmouseup="rightUp()"
+              ontouchstart="rightDown(); return false;"
+              ontouchend="rightUp(); return false;"
+              ontouchcancel="rightUp(); return false;">
+        RIGHT ▶
+      </button>
+    </div>
+  </div>
+
+  <script>
+    // ========================
+    // 効果音（Web Audio API）
+    // ========================
+    var audioCtx = null;
+
+    function initAudio() {
+      if (audioCtx) return;
+      try {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      } catch (e) {
+        audioCtx = null; // 非対応環境では音なしで動く
+      }
+    }
+
+    function ensureAudioRunning() {
+      if (!audioCtx) return;
+      if (audioCtx.state === "suspended") {
+        // iPhone Safari では、ユーザー操作中に resume する必要がある
+        audioCtx.resume();
+      }
+    }
+
+    function playBeep(freq, duration, type, volume) {
+      if (!audioCtx) return;
+      ensureAudioRunning();
+
+      var f = freq || 440;
+      var d = duration || 150;
+      var t = type || "square";
+      var v = (typeof volume === "number") ? volume : 0.2;
+
+      var osc = audioCtx.createOscillator();
+      var gain = audioCtx.createGain();
+      osc.type = t;
+      osc.frequency.value = f;
+      gain.gain.value = v;
+
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+
+      osc.start();
+      setTimeout(function () {
+        osc.stop();
+      }, d);
+    }
+
+    function playStartSound() {
+      playBeep(660, 100, "square", 0.25);
+      setTimeout(function () {
+        playBeep(880, 140, "square", 0.22);
+      }, 120);
+    }
+
+    function playGameOverSound() {
+      playBeep(330, 200, "sawtooth", 0.22);
+      setTimeout(function () {
+        playBeep(220, 250, "sawtooth", 0.18);
+      }, 220);
+    }
+
+    // ========================
+    // ゲーム本体
+    // ========================
+    var canvas = document.getElementById("gameCanvas");
+    var ctx = canvas.getContext("2d");
+
+    var startButton = document.getElementById("startButton");
+    var restartButton = document.getElementById("restartButton");
+    var scoreValue = document.getElementById("scoreValue");
+    var message = document.getElementById("message");
+    var difficultySelect = document.getElementById("difficultySelect");
+
+    var width = canvas.width;
+    var height = canvas.height;
+
+    var PLAYER_WIDTH = 60;
+    var PLAYER_HEIGHT = 14;
+
+    var DIFFICULTIES = {
+      easy:   { spawnInterval: 70, blockSpeedMin: 1.6, blockSpeedMax: 2.8, playerSpeed: 5   },
+      normal: { spawnInterval: 55, blockSpeedMin: 2.4, blockSpeedMax: 4.0, playerSpeed: 5.5 },
+      hard:   { spawnInterval: 40, blockSpeedMin: 3.2, blockSpeedMax: 5.2, playerSpeed: 6   }
+    };
+
+    var currentDifficultyKey = "normal";
+    var settings = DIFFICULTIES[currentDifficultyKey];
+
+    var player;
+    var blocks = [];
+    var spawnTimer = 0;
+    var score = 0;
+    var isRunning = false;
+    var isGameOver = false;
+    var lastTime = 0;
+    var loopId = null;
+
+    var leftPressed = false;
+    var rightPressed = false;
+
+    function applyDifficulty() {
+      currentDifficultyKey = difficultySelect.value;
+      settings = DIFFICULTIES[currentDifficultyKey];
+    }
+
+    function resetGame() {
+      applyDifficulty();
+      player = {
+        x: width / 2 - PLAYER_WIDTH / 2,
+        y: height - 38,
+        w: PLAYER_WIDTH,
+        h: PLAYER_HEIGHT,
+        speed: settings.playerSpeed
+      };
+
+      blocks = [];
+      spawnTimer = 0;
+      score = 0;
+      scoreValue.innerHTML = "0";
+      isRunning = false;
+      isGameOver = false;
+      lastTime = Date.now();
+      message.innerHTML = "「スタート」ボタンでゲーム開始。";
+
+      restartButton.disabled = true;
+
+      ctx.clearRect(0, 0, width, height);
+      drawScene();
+    }
+
+    function drawBackground() {
+      ctx.fillStyle = "#020617";
+      ctx.fillRect(0, 0, width, height);
+
+      ctx.fillStyle = "#111827";
+      var i;
+      for (i = 0; i < 40; i++) {
+        var x = (i * 37) % width;
+        var y = (i * 91) % height;
+        ctx.fillRect(x, y, 2, 2);
+      }
+    }
+
+    function drawPlayer() {
+      ctx.fillStyle = "#38bdf8";
+      ctx.fillRect(player.x, player.y, player.w, player.h);
+    }
+
+    function drawBlocks() {
+      var i;
+      ctx.fillStyle = "#f97316";
+      for (i = 0; i < blocks.length; i++) {
+        var b = blocks[i];
+        ctx.fillRect(b.x, b.y, b.w, b.h);
+      }
+    }
+
+    function drawScene() {
+      drawBackground();
+      drawBlocks();
+      drawPlayer();
+    }
+
+    function spawnBlock() {
+      var w = 26 + Math.random() * 40;
+      var x = Math.random() * (width - w);
+      var speed = settings.blockSpeedMin +
+                  Math.random() * (settings.blockSpeedMax - settings.blockSpeedMin);
+
+      blocks.push({ x: x, y: -20, w: w, h: 16, speed: speed });
+    }
+
+    function updateBlocks(delta) {
+      var i;
+      for (i = 0; i < blocks.length; i++) {
+        blocks[i].y += blocks[i].speed * (delta / 16);
+      }
+      var newBlocks = [];
+      for (i = 0; i < blocks.length; i++) {
+        if (blocks[i].y < height + 40) {
+          newBlocks.push(blocks[i]);
+        }
+      }
+      blocks = newBlocks;
+    }
+
+    function handleInput(delta) {
+      var move = player.speed * (delta / 16);
+      if (leftPressed && !rightPressed) {
+        player.x -= move;
+      } else if (rightPressed && !leftPressed) {
+        player.x += move;
+      }
+
+      if (player.x < 0) player.x = 0;
+      if (player.x + player.w > width) player.x = width - player.w;
+    }
+
+    function isCollide(a, b) {
+      return !(
+        a.x + a.w < b.x ||
+        a.x > b.x + b.w ||
+        a.y + a.h < b.y ||
+        a.y > b.y + b.h
+      );
+    }
+
+    function checkCollision() {
+      var i;
+      for (i = 0; i < blocks.length; i++) {
+        var b = blocks[i];
+        if (isCollide(
+          { x: player.x, y: player.y, w: player.w, h: player.h },
+          b
+        )) {
+          return true;
+        }
+      }
+      return false;
+    }
+
+    function gameOver() {
+      isRunning = false;
+      isGameOver = true;
+      message.innerHTML = "ゲームオーバー！ スコア：" + Math.floor(score);
+      restartButton.disabled = false;
+      if (loopId !== null) {
+        clearInterval(loopId);
+        loopId = null;
+      }
+      playGameOverSound();
+    }
+
+    function gameLoop() {
+      if (!isRunning) return;
+
+      var now = Date.now();
+      var delta = now - lastTime;
+      if (delta <= 0) delta = 16;
+      lastTime = now;
+
+      score += delta / 100;
+      scoreValue.innerHTML = String(Math.floor(score));
+
+      handleInput(delta);
+
+      spawnTimer += delta;
+      if (spawnTimer >= settings.spawnInterval * 16) {
+        spawnBlock();
+        spawnTimer = 0;
+      }
+
+      updateBlocks(delta);
+
+      if (checkCollision()) {
+        drawScene();
+        gameOver();
+        return;
+      }
+
+      drawScene();
+    }
+
+    // キーボード入力
+    document.onkeydown = function(e) {
+      e = e || window.event;
+      var code = e.keyCode || e.which;
+      if (code === 37) {
+        leftPressed = true;
+      } else if (code === 39) {
+        rightPressed = true;
+      }
+    };
+
+    document.onkeyup = function(e) {
+      e = e || window.event;
+      var code = e.keyCode || e.which;
+      if (code === 37) {
+        leftPressed = false;
+      } else if (code === 39) {
+        rightPressed = false;
+      }
+    };
+
+    // スマホ用ボタン制御
+    function leftDown()  { leftPressed  = true; }
+    function leftUp()    { leftPressed  = false; }
+    function rightDown() { rightPressed = true; }
+    function rightUp()   { rightPressed = false; }
+
+    window.leftDown = leftDown;
+    window.leftUp = leftUp;
+    window.rightDown = rightDown;
+    window.rightUp = rightUp;
+
+    // スタート・リスタート
+    function onStartClick() {
+      initAudio();
+      ensureAudioRunning();     // ← ここが iPhone 対策のポイント
+      if (isRunning) return;
+
+      if (isGameOver) {
+        resetGame();
+      }
+
+      isRunning = true;
+      isGameOver = false;
+      lastTime = Date.now();
+      message.innerHTML = "";
+      if (loopId === null) {
+        loopId = setInterval(gameLoop, 16); // 約60fps
+      }
+      playStartSound();
+    }
+
+    function onRestartClick() {
+      resetGame();
+    }
+
+    window.onStartClick = onStartClick;
+    window.onRestartClick = onRestartClick;
+
+    // 難易度変更
+    difficultySelect.onchange = function() {
+      resetGame();
+    };
+
+    // 初期化
+    resetGame();
+  </script>
+</body>
+</html>

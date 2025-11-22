@@ -158,7 +158,7 @@
 </head>
 <body>
   <header>
-    <div id="title">ブロックよけゲーム（読み込み中…）</div>
+    <div id="title">ブロックよけゲーム（準備OK）</div>
     <div id="score">スコア: <span id="scoreValue">0</span></div>
   </header>
 
@@ -196,7 +196,6 @@
   </div>
 
   <script>
-    // ここから全部、「DOM が読み込まれてから」実行
     document.addEventListener("DOMContentLoaded", function () {
       const canvas = document.getElementById("gameCanvas");
       const ctx = canvas.getContext("2d");
@@ -207,17 +206,11 @@
       const leftBtn = document.getElementById("leftBtn");
       const rightBtn = document.getElementById("rightBtn");
       const difficultySelect = document.getElementById("difficultySelect");
-      const titleEl = document.getElementById("title");
 
-      // スクリプトがちゃんと動き始めているかのチェック表示
-      titleEl.textContent = "ブロックよけゲーム（準備OK）";
+      // ← 矢印ボタンに隠れないように、下に余白をとる
+      const BOTTOM_MARGIN = 110;
 
-      // プレイヤー画像読み込み
-      const playerImgs = {
-        a: new Image(),
-        b: new Image(),
-        c: new Image()
-      };
+      const playerImgs = { a: new Image(), b: new Image(), c: new Image() };
       playerImgs.a.src = "player-a.jpeg";
       playerImgs.b.src = "player-b.jpeg";
       playerImgs.c.src = "player-c.jpeg";
@@ -239,7 +232,7 @@
         const rect = gameContainer.getBoundingClientRect();
         canvas.width = rect.width;
         canvas.height = rect.height;
-        player.y = canvas.height - player.height - 10;
+        player.y = canvas.height - player.height - BOTTOM_MARGIN;
       }
 
       window.addEventListener("resize", resizeCanvas);
@@ -262,7 +255,6 @@
 
       const keys = { left: false, right: false };
 
-      // キーボード操作
       document.addEventListener("keydown", function (e) {
         if (e.key === "ArrowLeft" || e.key === "a" || e.key === "A") {
           keys.left = true;
@@ -279,7 +271,6 @@
         }
       });
 
-      // スマホ用 左右ボタン
       function setupMoveButton(btn, keyName) {
         btn.addEventListener("mousedown", function () {
           keys[keyName] = true;
@@ -308,7 +299,6 @@
       setupMoveButton(leftBtn, "left");
       setupMoveButton(rightBtn, "right");
 
-      // プレイヤー選択
       playerButtons.forEach(function (btn) {
         btn.addEventListener("click", function () {
           const key = btn.getAttribute("data-player");
@@ -318,14 +308,12 @@
         });
       });
 
-      // 難易度変更
       difficultySelect.addEventListener("change", function () {
         const v = difficultySelect.value;
         currentDifficulty = DIFFICULTY_SETTINGS[v] || DIFFICULTY_SETTINGS.normal;
         blockSpawnInterval = currentDifficulty.spawnInterval;
       });
 
-      // スタートボタン
       startBtn.addEventListener("click", function () {
         resetGame();
         startGame();
@@ -339,7 +327,6 @@
       }
 
       function spawnBlock() {
-        // type: "normal" | "face" | "jiji"
         const r = Math.random();
         let type = "normal";
         if (r < 0.15) {
@@ -354,12 +341,12 @@
         let width, height;
         if (type === "jiji") {
           height = 60;
-          width  = 120;      // 横長
-          speed *= 4;        // 通常ブロックの4倍
+          width  = 120;
+          speed *= 4;
         } else if (type === "face") {
           width = 50;
           height = 50;
-          speed *= 2;        // 通常ブロックの2倍
+          speed *= 2;
         } else {
           width = 40 + Math.random() * 40;
           height = 20 + Math.random() * 20;
@@ -401,7 +388,7 @@
         blockSpawnInterval = currentDifficulty.spawnInterval;
 
         player.x = canvas.width / 2 - player.width / 2;
-        player.y = canvas.height - player.height - 10;
+        player.y = canvas.height - player.height - BOTTOM_MARGIN;
         running = true;
       }
 
@@ -491,7 +478,7 @@
       function init() {
         resizeCanvas();
         player.x = canvas.width / 2 - player.width / 2;
-        player.y = canvas.height - player.height - 10;
+        player.y = canvas.height - player.height - BOTTOM_MARGIN;
 
         const v = difficultySelect.value;
         currentDifficulty = DIFFICULTY_SETTINGS[v] || DIFFICULTY_SETTINGS.normal;

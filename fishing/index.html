@@ -16,7 +16,7 @@
     body {
       overflow: hidden;
       font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
-      /* ★ はっきり海の色に ★ */
+      /* 海の中グラデーション背景 */
       background:
         radial-gradient(circle at 20% 10%, rgba(255,255,255,0.35), transparent 55%),
         radial-gradient(circle at 80% 0%, rgba(148,163,184,0.5), transparent 55%),
@@ -64,7 +64,7 @@
       50%     { transform: rotate(4deg); }
     }
 
-    /* 泡 */
+    /* 泡（見た目用） */
     .bubble {
       position: absolute;
       bottom: -40px;
@@ -236,7 +236,7 @@
   <button id="startBtn">スタート</button>
 
   <script>
-    // ===== iPhone 対応 効果音・BGM =====
+    // ===== Web Audio：効果音 & 泡ポコポコBGM =====
     let audioCtx = null;
     let bubbleInterval = null;
 
@@ -248,6 +248,7 @@
       }
     }
 
+    // 通常のビープ音（クリック成功など）
     function playBeep(freq, durationMs, volume) {
       ensureAudioContext();
       if (!audioCtx) return;
@@ -285,20 +286,53 @@
       playBeep(260, 220, 0.22);
     }
 
-    // ぷくぷくBGM（クリックのたびに確実に開始）
+    // ★ 泡「ポコッ」1回分の音 ★
+    function playBubblePop() {
+      ensureAudioContext();
+      if (!audioCtx) return;
+      if (audioCtx.state === "suspended") {
+        audioCtx.resume();
+      }
+
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+
+      osc.type = "sine";
+      const now = audioCtx.currentTime;
+
+      // 高め → 低め へ一瞬で下降させて「ポコッ」
+      const startFreq = 700 + Math.random() * 300; // 700〜1000Hz
+      const endFreq   = 180 + Math.random() * 80;  // 180〜260Hz
+      osc.frequency.setValueAtTime(startFreq, now);
+      osc.frequency.exponentialRampToValueAtTime(endFreq, now + 0.18);
+
+      gain.gain.setValueAtTime(0.0, now);
+      gain.gain.linearRampToValueAtTime(0.18, now + 0.03);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+
+      osc.start(now);
+      osc.stop(now + 0.3);
+    }
+
+    // ★ 泡ポコポコBGM：ランダムな間隔で pop を鳴らし続ける ★
     function startBubbleBGM() {
       ensureAudioContext();
       if (!audioCtx) return;
       if (audioCtx.state === "suspended") {
         audioCtx.resume();
       }
-      stopBubbleBGM();
+      if (bubbleInterval) return; // すでにスタート済み
+
+      // すぐ1回鳴らす
+      playBubblePop();
+
+      // その後、0.4〜0.9秒ごとにランダムでポコッ
       bubbleInterval = setInterval(() => {
-        const f = 220 + Math.random() * 180;
-        const d = 90 + Math.random() * 80;
-        const v = 0.12 + Math.random() * 0.06;
-        playBeep(f, d, v);
-      }, 350);
+        playBubblePop();
+      }, 400 + Math.random() * 500);
     }
 
     function stopBubbleBGM() {
@@ -353,16 +387,17 @@
         leftSrc: "shark.png",
         rightSrc: "shark_flip.png",
         width: 150,
-        baseSpeed: 2.3,
+        baseSpeed: 2.8,
         points: 6,
         weight: 1
       }
     ];
 
+    // 難易度ごとの速度（少し強め）
     const DIFFICULTY_SETTINGS = {
-      easy:   { spawnInterval: 1100, speedMultiplier: 0.85 },
-      normal: { spawnInterval: 800,  speedMultiplier: 1.0  },
-      hard:   { spawnInterval: 600,  speedMultiplier: 1.15 }
+      easy:   { spawnInterval: 1100, speedMultiplier: 0.8 },
+      normal: { spawnInterval: 800,  speedMultiplier: 1.2 },
+      hard:   { spawnInterval: 650,  speedMultiplier: 2.0 }
     };
 
     const scoreValueEl = document.getElementById("scoreValue");
@@ -450,9 +485,9 @@
         onCatch(e);
       }, { passive: false });
 
-      // ★ スコアが上がるほど速くなる ★
+      // 難易度＆スコアに応じてスピードアップ
       const base = type.baseSpeed * currentDifficulty.speedMultiplier;
-      const speedBoost = 1 + Math.min(score, 60) / 30; // 0〜60点で 1〜3倍
+      const speedBoost = 1 + Math.min(score, 60) / 60; // 0〜60点で 1〜2倍
       const speed = base * speedBoost;
 
       function swim() {
@@ -491,6 +526,9 @@
         audioCtx.resume();
       }
 
+      // 最初のゲーム開始時にBGM開始（以降は鳴りっぱなし）
+      startBubbleBGM();
+
       score = 0;
       updateScoreBox();
       timeLeft = GAME_TIME;
@@ -501,7 +539,6 @@
 
       playStartSound();
       startTimer();
-      startBubbleBGM();
 
       fishInterval = setInterval(() => {
         createFish();
@@ -518,7 +555,6 @@
       timerInterval = null;
       fishInterval = null;
 
-      stopBubbleBGM();
       playEndSound();
       alert(`ゲーム終了！ スコア：${score} ポイント`);
 
@@ -535,7 +571,7 @@
       startGame();
     });
 
-    // ★ 背景用の泡：ゲーム開始前から常に出す ★
+    // 背景用の泡：ゲーム開始前から常に出る
     setInterval(createBubble, 1200);
   </script>
 

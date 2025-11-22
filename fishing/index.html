@@ -199,6 +199,23 @@
       image-rendering: auto;
       z-index: 5;
     }
+
+    /* ★ キャッチ時の点数ポップ表示 ★ */
+    .floating-score {
+      position: absolute;
+      font-size: 1.4rem;
+      font-weight: 700;
+      color: #facc15;
+      text-shadow: 0 0 6px rgba(0,0,0,0.7);
+      pointer-events: none;
+      animation: floatScore 0.7s ease-out forwards;
+      z-index: 9999;
+    }
+
+    @keyframes floatScore {
+      0%   { opacity: 1; transform: translateY(0); }
+      100% { opacity: 0; transform: translateY(-40px); }
+    }
   </style>
 </head>
 <body>
@@ -430,6 +447,17 @@
       return FISH_TYPES[0];
     }
 
+    // ★ キャッチした場所に点数を表示 ★
+    function showFloatingScore(points, x, y) {
+      const fs = document.createElement("div");
+      fs.className = "floating-score";
+      fs.textContent = "+" + points;
+      fs.style.left = x + "px";
+      fs.style.top = y + "px";
+      document.body.appendChild(fs);
+      setTimeout(() => fs.remove(), 700);
+    }
+
     // 背景用の泡
     function createBubble() {
       const bubble = document.createElement("div");
@@ -475,6 +503,13 @@
         score += pts;
         updateScoreBox();
         playCatchSound(pts);
+
+        // ★ 追加：魚の中心位置に点数ポップ表示
+        const rect = fish.getBoundingClientRect();
+        const fx = rect.left + rect.width / 2;
+        const fy = rect.top + rect.height / 2;
+        showFloatingScore(pts, fx, fy);
+
         fish.remove();
         e.stopPropagation();
       }

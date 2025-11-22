@@ -118,7 +118,7 @@
       background: radial-gradient(circle at top, #0f172a, #020617);
       width: 100%;
       height: 100%;
-      touch-action: none; /* キャンバス内だけスクロール無効 */
+      touch-action: none;
     }
 
     /* スマホ用 左右ボタン */
@@ -206,7 +206,7 @@
     const rightBtn = document.getElementById("rightBtn");
     const difficultySelect = document.getElementById("difficultySelect");
 
-    // プレイヤー画像（A/B/C）
+    // プレイヤー画像
     const playerImageFiles = {
       a: "player-a.jpeg",
       b: "player-b.jpeg",
@@ -222,9 +222,9 @@
     playerImgs.b.src = playerImageFiles.b;
     playerImgs.c.src = playerImageFiles.c;
 
-    // jiji ブロック画像（全プレイヤー共通）
+    // jiji 画像
     const jijiImg = new Image();
-    jijiImg.src = "jiji.PNG"; // ファイル名の大文字小文字に注意
+    jijiImg.src = "jiji.PNG";
 
     let currentPlayerKey = "a";
 
@@ -263,7 +263,7 @@
 
     const keys = { left: false, right: false };
 
-    // キーボード（PC用）
+    // PC用キーボード
     document.addEventListener("keydown", (e) => {
       if (e.key === "ArrowLeft" || e.key === "a" || e.key === "A") {
         keys.left = true;
@@ -280,37 +280,39 @@
       }
     });
 
-    // スマホ用 左右ボタン （できるだけシンプルに）
+    // 左右ボタン（マウス+タッチ）
     function startMoveLeft(e) {
-      e && e.preventDefault();
+      if (e) e.preventDefault();
       keys.left = true;
     }
     function stopMoveLeft(e) {
-      e && e.preventDefault();
+      if (e) e.preventDefault();
       keys.left = false;
     }
     function startMoveRight(e) {
-      e && e.preventDefault();
+      if (e) e.preventDefault();
       keys.right = true;
     }
     function stopMoveRight(e) {
-      e && e.preventDefault();
+      if (e) e.preventDefault();
       keys.right = false;
     }
 
-    leftBtn.addEventListener("touchstart", startMoveLeft, { passive: false });
-    leftBtn.addEventListener("touchend",   stopMoveLeft,  { passive: false });
-    leftBtn.addEventListener("mousedown",  startMoveLeft);
-    leftBtn.addEventListener("mouseup",    stopMoveLeft);
-    leftBtn.addEventListener("mouseleave", stopMoveLeft);
+    leftBtn.addEventListener("mousedown", startMoveLeft);
+    leftBtn.addEventListener("mouseup",   stopMoveLeft);
+    leftBtn.addEventListener("mouseleave",stopMoveLeft);
+    leftBtn.addEventListener("touchstart",startMoveLeft, { passive: false });
+    leftBtn.addEventListener("touchend",  stopMoveLeft,  { passive: false });
+    leftBtn.addEventListener("touchcancel",stopMoveLeft, { passive: false });
 
-    rightBtn.addEventListener("touchstart", startMoveRight, { passive: false });
-    rightBtn.addEventListener("touchend",   stopMoveRight,  { passive: false });
-    rightBtn.addEventListener("mousedown",  startMoveRight);
-    rightBtn.addEventListener("mouseup",    stopMoveRight);
-    rightBtn.addEventListener("mouseleave", stopMoveRight);
+    rightBtn.addEventListener("mousedown", startMoveRight);
+    rightBtn.addEventListener("mouseup",   stopMoveRight);
+    rightBtn.addEventListener("mouseleave",stopMoveRight);
+    rightBtn.addEventListener("touchstart",startMoveRight, { passive: false });
+    rightBtn.addEventListener("touchend",  stopMoveRight,  { passive: false });
+    rightBtn.addEventListener("touchcancel",stopMoveRight, { passive: false });
 
-    // プレイヤー選択
+    // プレイヤー選択（クリックのみ）
     playerButtons.forEach((btn) => {
       btn.addEventListener("click", () => {
         const key = btn.dataset.player;
@@ -318,13 +320,6 @@
         playerButtons.forEach((b) => b.classList.remove("active"));
         btn.classList.add("active");
       });
-      btn.addEventListener("touchstart", (e) => {
-        e.preventDefault();
-        const key = btn.dataset.player;
-        currentPlayerKey = key;
-        playerButtons.forEach((b) => b.classList.remove("active"));
-        btn.classList.add("active");
-      }, { passive: false });
     });
 
     // 難易度変更
@@ -334,15 +329,11 @@
       blockSpawnInterval = currentDifficulty.spawnInterval;
     });
 
-    // スタートボタン（タッチ & クリック両対応）
-    function handleStart(e) {
-      if (e) e.preventDefault();
+    // スタート／リスタート（クリックのみ）
+    startBtn.addEventListener("click", () => {
       resetGame();
       startGame();
-    }
-
-    startBtn.addEventListener("click", handleStart);
-    startBtn.addEventListener("touchstart", handleStart, { passive: false });
+    });
 
     function clampPlayer() {
       if (player.x < 0) player.x = 0;
@@ -368,12 +359,12 @@
       let width, height;
       if (type === "jiji") {
         height = 60;
-        width  = 120;    // 横長
-        speed *= 4;      // 通常の4倍・プレイヤーブロックの2倍
+        width  = 120;  // 横長
+        speed *= 4;
       } else if (type === "player") {
         width = 50;
         height = 50;
-        speed *= 2;      // 他プレイヤー顔ブロックは2倍速
+        speed *= 2;
       } else {
         width = 40 + Math.random() * 40;
         height = 20 + Math.random() * 20;
@@ -439,23 +430,16 @@
       const delta = timestamp - lastTime;
       lastTime = timestamp;
 
-      // プレイヤー移動
       const moveSpeed = player.baseSpeed;
-      if (keys.left) {
-        player.x -= moveSpeed;
-      }
-      if (keys.right) {
-        player.x += moveSpeed;
-      }
+      if (keys.left)  player.x -= moveSpeed;
+      if (keys.right) player.x += moveSpeed;
       clampPlayer();
 
-      // ブロック生成
       if (timestamp - lastSpawnTime > blockSpawnInterval) {
         spawnBlock();
         lastSpawnTime = timestamp;
       }
 
-      // ブロック更新
       for (let i = blocks.length - 1; i >= 0; i--) {
         const b = blocks[i];
         b.y += b.speed;

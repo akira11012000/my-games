@@ -102,11 +102,6 @@
       font-size: 0.8rem;
     }
 
-    #hint {
-      font-size: 0.75rem;
-      color: #9ca3af;
-    }
-
     #gameContainer {
       flex: 1;
       position: relative;
@@ -121,7 +116,7 @@
       touch-action: none;
     }
 
-    /* スマホ用 左右ボタン（サイズを1/2に） */
+    /* スマホ用 左右ボタン（サイズ1/2） */
     #touchControls {
       position: fixed;
       bottom: 8px;
@@ -163,14 +158,14 @@
   </header>
 
   <div id="controls">
+    <!-- プレイヤー: の文字は削除し、ボタンだけ1行に -->
     <div id="playerRow">
-      <span style="font-size:0.8rem;">プレイヤー:</span>
       <div id="playerButtons">
-        <button class="player-btn active" data-player="a">プレイヤー A</button>
-        <button class="player-btn" data-player="b">プレイヤー B</button>
-        <button class="player-btn" data-player="c">プレイヤー C</button>
+        <button class="player-btn active" data-player="a">プレA</button>
+        <button class="player-btn" data-player="b">プレB</button>
+        <button class="player-btn" data-player="c">プレC</button>
       </div>
-      <button id="startBtn">スタート / リスタート</button>
+      <button id="startBtn">開始 / 再開</button>
     </div>
     <div id="difficultyRow">
       <span style="font-size:0.8rem;">難易度:</span>
@@ -179,9 +174,6 @@
         <option value="normal" selected>ふつう</option>
         <option value="hard">むずかしい</option>
       </select>
-    </div>
-    <div id="hint">
-      PC: ←→ キーで移動 / スマホ: 下の ◀ ▶ ボタンで移動
     </div>
   </div>
 
@@ -207,7 +199,8 @@
       const rightBtn = document.getElementById("rightBtn");
       const difficultySelect = document.getElementById("difficultySelect");
 
-      const BOTTOM_MARGIN = 110; // プレイヤーが矢印に隠れないように
+      // プレイヤーをさらに20px上に（110 → 130）
+      const BOTTOM_MARGIN = 130;
 
       // ==== 効果音用 Web Audio ====
       let audioCtx = null;
@@ -248,7 +241,7 @@
         y: 0,
         width: 60,
         height: 60,
-        baseSpeed: 3.5   // ← もともと7だったのを1/2に
+        baseSpeed: 3.5   // 速度は 1/2 に調整済み
       };
 
       function resizeCanvas() {
@@ -370,17 +363,17 @@
         if (type === "jiji") {
           height = 60;
           width  = 120;
-          speed *= 4;      // まずは4倍
+          speed *= 4;
         } else if (type === "face") {
           width = 50;
           height = 50;
-          speed *= 2;      // 顔ブロックは2倍
+          speed *= 2;
         } else {
           width = 40 + Math.random() * 40;
           height = 20 + Math.random() * 20;
         }
 
-        // すべてのブロックを1/2のスピードに
+        // 全ブロックのスピードを1/2に
         speed *= 0.5;
 
         const x = Math.random() * (canvas.width - width);

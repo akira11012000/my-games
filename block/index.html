@@ -158,7 +158,7 @@
 </head>
 <body>
   <header>
-    <div id="title">ブロックよけゲーム</div>
+    <div id="title">ブロックよけゲーム（読み込み中…）</div>
     <div id="score">スコア: <span id="scoreValue">0</span></div>
   </header>
 
@@ -196,326 +196,312 @@
   </div>
 
   <script>
-    // ===== 基本のDOM参照 =====
-    const canvas = document.getElementById("gameCanvas");
-    const ctx = canvas.getContext("2d");
-    const scoreValueEl = document.getElementById("scoreValue");
-    const startBtn = document.getElementById("startBtn");
-    const playerButtons = document.querySelectorAll(".player-btn");
-    const gameContainer = document.getElementById("gameContainer");
-    const leftBtn = document.getElementById("leftBtn");
-    const rightBtn = document.getElementById("rightBtn");
-    const difficultySelect = document.getElementById("difficultySelect");
+    // ここから全部、「DOM が読み込まれてから」実行
+    document.addEventListener("DOMContentLoaded", function () {
+      const canvas = document.getElementById("gameCanvas");
+      const ctx = canvas.getContext("2d");
+      const scoreValueEl = document.getElementById("scoreValue");
+      const startBtn = document.getElementById("startBtn");
+      const playerButtons = document.querySelectorAll(".player-btn");
+      const gameContainer = document.getElementById("gameContainer");
+      const leftBtn = document.getElementById("leftBtn");
+      const rightBtn = document.getElementById("rightBtn");
+      const difficultySelect = document.getElementById("difficultySelect");
+      const titleEl = document.getElementById("title");
 
-    // ===== 画像の読み込み =====
-    const playerImgs = {
-      a: new Image(),
-      b: new Image(),
-      c: new Image()
-    };
-    playerImgs.a.src = "player-a.jpeg";
-    playerImgs.b.src = "player-b.jpeg";
-    playerImgs.c.src = "player-c.jpeg";
+      // スクリプトがちゃんと動き始めているかのチェック表示
+      titleEl.textContent = "ブロックよけゲーム（準備OK）";
 
-    const jijiImg = new Image();
-    jijiImg.src = "jiji.PNG";   // 横長じじ
+      // プレイヤー画像読み込み
+      const playerImgs = {
+        a: new Image(),
+        b: new Image(),
+        c: new Image()
+      };
+      playerImgs.a.src = "player-a.jpeg";
+      playerImgs.b.src = "player-b.jpeg";
+      playerImgs.c.src = "player-c.jpeg";
 
-    let currentPlayerKey = "a";
+      const jijiImg = new Image();
+      jijiImg.src = "jiji.PNG";
 
-    // ===== キャンバス & プレイヤー =====
-    const player = {
-      x: 0,
-      y: 0,
-      width: 60,
-      height: 60,
-      baseSpeed: 7
-    };
+      let currentPlayerKey = "a";
 
-    function resizeCanvas() {
-      const rect = gameContainer.getBoundingClientRect();
-      canvas.width = rect.width;
-      canvas.height = rect.height;
-      player.y = canvas.height - player.height - 10;
-    }
-
-    window.addEventListener("resize", resizeCanvas);
-
-    // ===== ブロック & 難易度 =====
-    const blocks = [];
-    let blockSpawnInterval = 700;
-    let lastSpawnTime = 0;
-
-    const DIFFICULTY_SETTINGS = {
-      easy:   { spawnInterval: 900, speedMultiplier: 0.9 },
-      normal: { spawnInterval: 700, speedMultiplier: 1.2 },
-      hard:   { spawnInterval: 520, speedMultiplier: 1.7 }
-    };
-    let currentDifficulty = DIFFICULTY_SETTINGS.normal;
-
-    // ===== ゲーム状態 =====
-    let score = 0;
-    let lastTime = 0;
-    let running = false;
-    let animationId = null;
-
-    const keys = { left: false, right: false };
-
-    // ===== 入力（PCキーボード） =====
-    document.addEventListener("keydown", function(e) {
-      if (e.key === "ArrowLeft" || e.key === "a" || e.key === "A") {
-        keys.left = true;
-      } else if (e.key === "ArrowRight" || e.key === "d" || e.key === "D") {
-        keys.right = true;
-      }
-    });
-
-    document.addEventListener("keyup", function(e) {
-      if (e.key === "ArrowLeft" || e.key === "a" || e.key === "A") {
-        keys.left = false;
-      } else if (e.key === "ArrowRight" || e.key === "d" || e.key === "D") {
-        keys.right = false;
-      }
-    });
-
-    // ===== 入力（スマホ用ボタン） =====
-    function setupMoveButton(btn, keyName) {
-      btn.addEventListener("mousedown", function() {
-        keys[keyName] = true;
-      });
-      btn.addEventListener("mouseup", function() {
-        keys[keyName] = false;
-      });
-      btn.addEventListener("mouseleave", function() {
-        keys[keyName] = false;
-      });
-
-      btn.addEventListener("touchstart", function(e) {
-        e.preventDefault();
-        keys[keyName] = true;
-      });
-      btn.addEventListener("touchend", function(e) {
-        e.preventDefault();
-        keys[keyName] = false;
-      });
-      btn.addEventListener("touchcancel", function(e) {
-        e.preventDefault();
-        keys[keyName] = false;
-      });
-    }
-
-    setupMoveButton(leftBtn, "left");
-    setupMoveButton(rightBtn, "right");
-
-    // ===== プレイヤー選択 =====
-    playerButtons.forEach(function(btn) {
-      btn.addEventListener("click", function() {
-        const key = btn.getAttribute("data-player");
-        currentPlayerKey = key;
-        playerButtons.forEach(function(b) { b.classList.remove("active"); });
-        btn.classList.add("active");
-      });
-    });
-
-    // ===== 難易度変更 =====
-    difficultySelect.addEventListener("change", function() {
-      const v = difficultySelect.value;
-      currentDifficulty = DIFFICULTY_SETTINGS[v] || DIFFICULTY_SETTINGS.normal;
-      blockSpawnInterval = currentDifficulty.spawnInterval;
-    });
-
-    // ===== スタートボタン =====
-    startBtn.addEventListener("click", function() {
-      resetGame();
-      startGame();
-    });
-
-    // ===== プレイヤー位置制限 =====
-    function clampPlayer() {
-      if (player.x < 0) player.x = 0;
-      if (player.x + player.width > canvas.width) {
-        player.x = canvas.width - player.width;
-      }
-    }
-
-    // ===== ブロック生成 =====
-    function spawnBlock() {
-      // type: "normal" | "face" | "jiji"
-      const r = Math.random();
-      let type = "normal";
-      if (r < 0.15) {
-        type = "jiji";
-      } else if (r < 0.55) {
-        type = "face";
-      }
-
-      const baseFall = 2.5 + Math.random() * 2.5;
-      let speed = baseFall * currentDifficulty.speedMultiplier;
-
-      let width, height;
-      if (type === "jiji") {
-        height = 60;
-        width  = 120;      // 横長
-        speed *= 4;        // 通常ブロックの4倍
-      } else if (type === "face") {
-        width = 50;
-        height = 50;
-        speed *= 2;        // 通常ブロックの2倍
-      } else {
-        width = 40 + Math.random() * 40;
-        height = 20 + Math.random() * 20;
-      }
-
-      const x = Math.random() * (canvas.width - width);
-
-      const block = {
-        x: x,
-        y: -60,
-        width: width,
-        height: height,
-        speed: speed,
-        type: type,
-        faceKey: null
+      const player = {
+        x: 0,
+        y: 0,
+        width: 60,
+        height: 60,
+        baseSpeed: 7
       };
 
-      if (type === "face") {
-        // 自分以外のプレイヤーの顔が落ちてくる
-        const others = ["a", "b", "c"].filter(function(k) {
-          return k !== currentPlayerKey;
+      function resizeCanvas() {
+        const rect = gameContainer.getBoundingClientRect();
+        canvas.width = rect.width;
+        canvas.height = rect.height;
+        player.y = canvas.height - player.height - 10;
+      }
+
+      window.addEventListener("resize", resizeCanvas);
+
+      const blocks = [];
+      let blockSpawnInterval = 700;
+      let lastSpawnTime = 0;
+
+      const DIFFICULTY_SETTINGS = {
+        easy:   { spawnInterval: 900, speedMultiplier: 0.9 },
+        normal: { spawnInterval: 700, speedMultiplier: 1.2 },
+        hard:   { spawnInterval: 520, speedMultiplier: 1.7 }
+      };
+      let currentDifficulty = DIFFICULTY_SETTINGS.normal;
+
+      let score = 0;
+      let lastTime = 0;
+      let running = false;
+      let animationId = null;
+
+      const keys = { left: false, right: false };
+
+      // キーボード操作
+      document.addEventListener("keydown", function (e) {
+        if (e.key === "ArrowLeft" || e.key === "a" || e.key === "A") {
+          keys.left = true;
+        } else if (e.key === "ArrowRight" || e.key === "d" || e.key === "D") {
+          keys.right = true;
+        }
+      });
+
+      document.addEventListener("keyup", function (e) {
+        if (e.key === "ArrowLeft" || e.key === "a" || e.key === "A") {
+          keys.left = false;
+        } else if (e.key === "ArrowRight" || e.key === "d" || e.key === "D") {
+          keys.right = false;
+        }
+      });
+
+      // スマホ用 左右ボタン
+      function setupMoveButton(btn, keyName) {
+        btn.addEventListener("mousedown", function () {
+          keys[keyName] = true;
         });
-        const pk = others[Math.floor(Math.random() * others.length)];
-        block.faceKey = pk;
+        btn.addEventListener("mouseup", function () {
+          keys[keyName] = false;
+        });
+        btn.addEventListener("mouseleave", function () {
+          keys[keyName] = false;
+        });
+
+        btn.addEventListener("touchstart", function (e) {
+          e.preventDefault();
+          keys[keyName] = true;
+        });
+        btn.addEventListener("touchend", function (e) {
+          e.preventDefault();
+          keys[keyName] = false;
+        });
+        btn.addEventListener("touchcancel", function (e) {
+          e.preventDefault();
+          keys[keyName] = false;
+        });
       }
 
-      blocks.push(block);
-    }
+      setupMoveButton(leftBtn, "left");
+      setupMoveButton(rightBtn, "right");
 
-    // ===== ゲームリセット =====
-    function resetGame() {
-      if (animationId) {
-        cancelAnimationFrame(animationId);
-      }
-      blocks.length = 0;
-      score = 0;
-      scoreValueEl.textContent = score;
-      lastSpawnTime = 0;
-      lastTime = 0;
+      // プレイヤー選択
+      playerButtons.forEach(function (btn) {
+        btn.addEventListener("click", function () {
+          const key = btn.getAttribute("data-player");
+          currentPlayerKey = key;
+          playerButtons.forEach(function (b) { b.classList.remove("active"); });
+          btn.classList.add("active");
+        });
+      });
 
-      const v = difficultySelect.value;
-      currentDifficulty = DIFFICULTY_SETTINGS[v] || DIFFICULTY_SETTINGS.normal;
-      blockSpawnInterval = currentDifficulty.spawnInterval;
+      // 難易度変更
+      difficultySelect.addEventListener("change", function () {
+        const v = difficultySelect.value;
+        currentDifficulty = DIFFICULTY_SETTINGS[v] || DIFFICULTY_SETTINGS.normal;
+        blockSpawnInterval = currentDifficulty.spawnInterval;
+      });
 
-      player.x = canvas.width / 2 - player.width / 2;
-      player.y = canvas.height - player.height - 10;
-      running = true;
-    }
+      // スタートボタン
+      startBtn.addEventListener("click", function () {
+        resetGame();
+        startGame();
+      });
 
-    // ===== ゲームオーバー =====
-    function gameOver() {
-      running = false;
-      if (animationId) cancelAnimationFrame(animationId);
-      alert("ゲームオーバー！ スコア: " + score);
-    }
-
-    // ===== 衝突判定 =====
-    function rectsCollide(a, b) {
-      return !(
-        a.x + a.width < b.x ||
-        a.x > b.x + b.width ||
-        a.y + a.height < b.y ||
-        a.y > b.y + b.height
-      );
-    }
-
-    // ===== メインループ =====
-    function update(timestamp) {
-      if (!running) return;
-
-      if (!lastTime) lastTime = timestamp;
-      const delta = timestamp - lastTime;
-      lastTime = timestamp;
-
-      // プレイヤー移動
-      const moveSpeed = player.baseSpeed;
-      if (keys.left)  player.x -= moveSpeed;
-      if (keys.right) player.x += moveSpeed;
-      clampPlayer();
-
-      // ブロック生成
-      if (timestamp - lastSpawnTime > blockSpawnInterval) {
-        spawnBlock();
-        lastSpawnTime = timestamp;
-      }
-
-      // ブロック更新
-      for (let i = blocks.length - 1; i >= 0; i--) {
-        const b = blocks[i];
-        b.y += b.speed;
-
-        if (rectsCollide(player, b)) {
-          gameOver();
-          return;
-        }
-
-        if (b.y > canvas.height) {
-          blocks.splice(i, 1);
-          score++;
-          scoreValueEl.textContent = score;
+      function clampPlayer() {
+        if (player.x < 0) player.x = 0;
+        if (player.x + player.width > canvas.width) {
+          player.x = canvas.width - player.width;
         }
       }
 
-      draw();
-      animationId = requestAnimationFrame(update);
-    }
+      function spawnBlock() {
+        // type: "normal" | "face" | "jiji"
+        const r = Math.random();
+        let type = "normal";
+        if (r < 0.15) {
+          type = "jiji";
+        } else if (r < 0.55) {
+          type = "face";
+        }
 
-    // ===== 描画 =====
-    function draw() {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
+        const baseFall = 2.5 + Math.random() * 2.5;
+        let speed = baseFall * currentDifficulty.speedMultiplier;
 
-      // プレイヤー
-      const pImg = playerImgs[currentPlayerKey];
-      if (pImg && pImg.complete) {
-        ctx.drawImage(pImg, player.x, player.y, player.width, player.height);
-      } else {
-        ctx.fillStyle = "#f97316";
-        ctx.fillRect(player.x, player.y, player.width, player.height);
-      }
-
-      // ブロック
-      for (let i = 0; i < blocks.length; i++) {
-        const b = blocks[i];
-        if (b.type === "jiji" && jijiImg.complete) {
-          ctx.drawImage(jijiImg, b.x, b.y, b.width, b.height);
-        } else if (b.type === "face" && b.faceKey && playerImgs[b.faceKey].complete) {
-          ctx.drawImage(playerImgs[b.faceKey], b.x, b.y, b.width, b.height);
+        let width, height;
+        if (type === "jiji") {
+          height = 60;
+          width  = 120;      // 横長
+          speed *= 4;        // 通常ブロックの4倍
+        } else if (type === "face") {
+          width = 50;
+          height = 50;
+          speed *= 2;        // 通常ブロックの2倍
         } else {
-          ctx.fillStyle = "#38bdf8";
-          ctx.fillRect(b.x, b.y, b.width, b.height);
+          width = 40 + Math.random() * 40;
+          height = 20 + Math.random() * 20;
+        }
+
+        const x = Math.random() * (canvas.width - width);
+
+        const block = {
+          x: x,
+          y: -60,
+          width: width,
+          height: height,
+          speed: speed,
+          type: type,
+          faceKey: null
+        };
+
+        if (type === "face") {
+          const others = ["a", "b", "c"].filter(function (k) {
+            return k !== currentPlayerKey;
+          });
+          const pk = others[Math.floor(Math.random() * others.length)];
+          block.faceKey = pk;
+        }
+
+        blocks.push(block);
+      }
+
+      function resetGame() {
+        if (animationId) cancelAnimationFrame(animationId);
+        blocks.length = 0;
+        score = 0;
+        scoreValueEl.textContent = score;
+        lastSpawnTime = 0;
+        lastTime = 0;
+
+        const v = difficultySelect.value;
+        currentDifficulty = DIFFICULTY_SETTINGS[v] || DIFFICULTY_SETTINGS.normal;
+        blockSpawnInterval = currentDifficulty.spawnInterval;
+
+        player.x = canvas.width / 2 - player.width / 2;
+        player.y = canvas.height - player.height - 10;
+        running = true;
+      }
+
+      function gameOver() {
+        running = false;
+        if (animationId) cancelAnimationFrame(animationId);
+        alert("ゲームオーバー！ スコア: " + score);
+      }
+
+      function rectsCollide(a, b) {
+        return !(
+          a.x + a.width < b.x ||
+          a.x > b.x + b.width ||
+          a.y + a.height < b.y ||
+          a.y > b.y + b.height
+        );
+      }
+
+      function update(timestamp) {
+        if (!running) return;
+
+        if (!lastTime) lastTime = timestamp;
+        const delta = timestamp - lastTime;
+        lastTime = timestamp;
+
+        const moveSpeed = player.baseSpeed;
+        if (keys.left)  player.x -= moveSpeed;
+        if (keys.right) player.x += moveSpeed;
+        clampPlayer();
+
+        if (timestamp - lastSpawnTime > blockSpawnInterval) {
+          spawnBlock();
+          lastSpawnTime = timestamp;
+        }
+
+        for (let i = blocks.length - 1; i >= 0; i--) {
+          const b = blocks[i];
+          b.y += b.speed;
+
+          if (rectsCollide(player, b)) {
+            gameOver();
+            return;
+          }
+
+          if (b.y > canvas.height) {
+            blocks.splice(i, 1);
+            score++;
+            scoreValueEl.textContent = score;
+          }
+        }
+
+        draw();
+        animationId = requestAnimationFrame(update);
+      }
+
+      function draw() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        const pImg = playerImgs[currentPlayerKey];
+        if (pImg && pImg.complete) {
+          ctx.drawImage(pImg, player.x, player.y, player.width, player.height);
+        } else {
+          ctx.fillStyle = "#f97316";
+          ctx.fillRect(player.x, player.y, player.width, player.height);
+        }
+
+        for (let i = 0; i < blocks.length; i++) {
+          const b = blocks[i];
+          if (b.type === "jiji" && jijiImg.complete) {
+            ctx.drawImage(jijiImg, b.x, b.y, b.width, b.height);
+          } else if (b.type === "face" && b.faceKey && playerImgs[b.faceKey].complete) {
+            ctx.drawImage(playerImgs[b.faceKey], b.x, b.y, b.width, b.height);
+          } else {
+            ctx.fillStyle = "#38bdf8";
+            ctx.fillRect(b.x, b.y, b.width, b.height);
+          }
         }
       }
-    }
 
-    // ===== ゲーム開始 =====
-    function startGame() {
-      running = true;
-      lastTime = 0;
-      lastSpawnTime = 0;
-      animationId = requestAnimationFrame(update);
-    }
+      function startGame() {
+        running = true;
+        lastTime = 0;
+        lastSpawnTime = 0;
+        animationId = requestAnimationFrame(update);
+      }
 
-    // ===== 初期化 =====
-    function init() {
-      resizeCanvas();
-      player.x = canvas.width / 2 - player.width / 2;
-      player.y = canvas.height - player.height - 10;
+      function init() {
+        resizeCanvas();
+        player.x = canvas.width / 2 - player.width / 2;
+        player.y = canvas.height - player.height - 10;
 
-      const v = difficultySelect.value;
-      currentDifficulty = DIFFICULTY_SETTINGS[v] || DIFFICULTY_SETTINGS.normal;
-      blockSpawnInterval = currentDifficulty.spawnInterval;
+        const v = difficultySelect.value;
+        currentDifficulty = DIFFICULTY_SETTINGS[v] || DIFFICULTY_SETTINGS.normal;
+        blockSpawnInterval = currentDifficulty.spawnInterval;
 
-      draw();
-    }
+        draw();
+      }
 
-    init();
+      init();
+    });
   </script>
 </body>
 </html>

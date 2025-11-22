@@ -2,7 +2,6 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>もぐらたたきゲーム（改良版）</title>
   <style>
     * { box-sizing: border-box; }
@@ -321,6 +320,14 @@
         playBeep(330, 200, "triangle", 0.18);
       }, 180);
     }
+    // ★ 追加：めがねおじさん用の「大きな音」
+    function playPenaltySound() {
+      // 低くて大きめの音を2発鳴らす
+      playBeep(200, 180, "sawtooth", 0.6);
+      setTimeout(function () {
+        playBeep(120, 200, "square", 0.5);
+      }, 120);
+    }
 
     // ========= ゲーム設定 =========
     var GAME_TIME = 30; // 秒
@@ -449,12 +456,15 @@
         message.textContent = "ナイスヒット！";
         playHitSound();
       } else if (currentType === "bad") {
+        // ★ ここを変更：ペナルティ −5点 & 大きな音
+        score -= 5;
         miss++;
         combo = 0;
+        scoreSpan.textContent = score;
         missSpan.textContent = miss;
         comboSpan.textContent = combo;
-        message.textContent = "あっ！叩いちゃダメな人でした…";
-        playMissSound();
+        message.textContent = "ペナルティ！ -5点… めがねのおじさんでした。";
+        playPenaltySound();
       }
 
       clearCurrent();

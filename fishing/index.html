@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>つりゲーム</title>
+  <style>
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+      /* ★ 海の中グラデーション背景 ★ */
+      background:
+        radial-gradient(circle at 20% 10%, rgba(255,255,255,0.35), transparent 55%),
+        radial-gradient(circle at 80% 0%, rgba(148,163,184,0.5), transparent 55%),
+        linear-gradient(to bottom, #0ea5e9 0%, #0369a1 40%, #022c5b 100%);
+      touch-action: manipulation;
+      position: relative;
+    }
+
+    /* 海の光 */
+    .light-ray {
+      position: absolute;
+      top: -25%;
+      left: -10%;
+      width: 140%;
+      height: 65%;
+      background: linear-gradient(to bottom, rgba(255,255,255,0.25), transparent 70%);
+      transform: skewX(-18deg);
+      mix-blend-mode: screen;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* 海藻 */
+    .seaweed {
+      position: absolute;
+      bottom: -10px;
+      width: 26px;
+      height: 130px;
+      border-radius: 26px 26px 0 0;
+      background: linear-gradient(#22c55e, #14532d);
+      transform-origin: bottom center;
+      animation: sway 3.5s ease-in-out infinite;
+      opacity: 0.9;
+      z-index: 1;
+    }
+
+    .seaweed:nth-child(2) { left: 8%;  animation-duration: 3.2s; }
+    .seaweed:nth-child(3) { left: 18%; animation-duration: 3.8s; }
+    .seaweed:nth-child(4) { left: 32%; animation-duration: 4.2s; }
+    .seaweed:nth-child(5) { left: 60%; animation-duration: 3.6s; }
+    .seaweed:nth-child(6) { left: 78%; animation-duration: 4.0s; }
+
+    @keyframes sway {
+      0%,100% { transform: rotate(-4deg); }
+      50%     { transform: rotate(4deg); }
+    }
+
+    /* 泡 */
+    .bubble {
+      position: absolute;
+      bottom: -40px;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      border: 2px solid rgba(255,255,255,0.8);
+      box-shadow: 0 0 6px rgba(255,255,255,0.7);
+      opacity: 0.9;
+      pointer-events: none;
+      animation: rise 7s linear forwards;
+      z-index: 2;
+    }
+
+    @keyframes rise {
+      0%   { transform: translateY(0) scale(0.6); opacity: 0; }
+      10%  { opacity: 0.9; }
+      100% { transform: translateY(-120vh) scale(1.1); opacity: 0; }
+    }
+
+    /* スコア表示（ガラスカード） */
+    #scoreBox {
+      position: absolute;
+      top: 12px;
+      left: 10px;
+      padding: 10px 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: radial-gradient(circle at top left, rgba(255,255,255,0.95), rgba(148,163,184,0.6));
+      border-radius: 999px;
+      box-shadow: 0 6px 16px rgba(15,23,42,0.4);
+      backdrop-filter: blur(8px);
+      color: #0f172a;
+      z-index: 10;
+    }
+
+    #scoreIcon {
+      font-size: 1.4rem;
+    }
+
+    #scoreLabel {
+      font-size: 0.8rem;
+      opacity: 0.8;
+    }
+
+    #scoreValue {
+      font-size: 1.2rem;
+      font-weight: 700;
+      min-width: 3.5em;
+      text-align: right;
+    }
+
+    .score-pop {
+      animation: pop 0.25s ease-out;
+    }
+
+    @keyframes pop {
+      0%   { transform: scale(1); }
+      50%  { transform: scale(1.15); }
+      100% { transform: scale(1); }
+    }
+
+    #timer {
+      position: absolute;
+      top: 12px;
+      right: 10px;
+      background: rgba(15,23,42,0.8);
+      color: #e5e7eb;
+      padding: 8px 14px;
+      border-radius: 999px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      box-shadow: 0 6px 16px rgba(15,23,42,0.5);
+      z-index: 10;
+    }
+
+    #difficultyBox {
+      position: absolute;
+      top: 56px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(15,23,42,0.75);
+      color: #e5e7eb;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 0.85rem;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      box-shadow: 0 4px 10px rgba(15,23,42,0.6);
+      z-index: 10;
+    }
+
+    #difficultySelect {
+      font-size: 0.85rem;
+      padding: 2px 6px;
+      border-radius: 999px;
+      border: 1px solid #9ca3af;
+      background: #f9fafb;
+      color: #111827;
+    }
+
+    #startBtn {
+      position: fixed;
+      bottom: 80px;
+      left: 50%;
+      transform: translateX(-50%);
+      padding: 14px 26px;
+      font-size: 1.2rem;
+      background: linear-gradient(135deg, #facc15, #f97316);
+      color: #111827;
+      border: none;
+      border-radius: 999px;
+      box-shadow: 0 8px 18px rgba(15,23,42,0.6);
+      cursor: pointer;
+      z-index: 999;
+      display: block;
+    }
+
+    #startBtn:active {
+      transform: translateX(-50%) translateY(1px);
+      box-shadow: 0 4px 10px rgba(15,23,42,0.6);
+    }
+
+    .fish {
+      position: absolute;
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-tap-highlight-color: rgba(0,0,0,0);
+      pointer-events: auto;
+      image-rendering: auto;
+      z-index: 5;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="light-ray"></div>
+
+  <!-- 海藻（6本）-->
+  <div class="seaweed"></div>
+  <div class="seaweed"></div>
+  <div class="seaweed"></div>
+  <div class="seaweed"></div>
+  <div class="seaweed"></div>
+  <div class="seaweed"></div>
+
+  <!-- スコア表示 -->
+  <div id="scoreBox">
+    <div id="scoreIcon">⭐</div>
+    <div>
+      <div id="scoreLabel">スコア</div>
+      <div id="scoreValue">0</div>
+    </div>
+  </div>
+
+  <div id="timer">30秒</div>
+
+  <div id="difficultyBox">
+    難易度：
+    <select id="difficultySelect">
+      <option value="easy">かんたん</option>
+      <option value="normal" selected>ふつう</option>
+      <option value="hard">むずかしい</option>
+    </select>
+  </div>
+
+  <button id="startBtn">スタート</button>
+
+  <script>
+    // ===== iPhone 対応 効果音・BGM =====
+    let audioCtx = null;
+    let bubbleInterval = null;
+
+    function initAudio() {
+      if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      }
+    }
+
+    function playBeep(freq, durationMs, volume) {
+      if (!audioCtx) return;
+      if (audioCtx.state === "suspended") audioCtx.resume();
+
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+
+      osc.frequency.value = freq;
+      osc.type = "square";
+      gain.gain.value = volume;
+
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+
+      const now = audioCtx.currentTime;
+      osc.start(now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + durationMs / 1000);
+      osc.stop(now + durationMs / 1000 + 0.02);
+    }
+
+    function playCatchSound(points) {
+      const baseFreq = 500;
+      const freq = baseFreq + points * 80;
+      playBeep(freq, 180, 0.25);
+    }
+
+    function playStartSound() {
+      playBeep(360, 140, 0.23);
+    }
+
+    function playEndSound() {
+      playBeep(260, 220, 0.22);
+    }
+
+    // ぷくぷくBGM
+    function startBubbleBGM() {
+      if (!audioCtx) return;
+      stopBubbleBGM();
+      bubbleInterval = setInterval(() => {
+        const f = 220 + Math.random() * 180;
+        const d = 90 + Math.random() * 80;
+        const v = 0.12 + Math.random() * 0.06;
+        playBeep(f, d, v);
+      }, 350);
+    }
+
+    function stopBubbleBGM() {
+      if (bubbleInterval) {
+        clearInterval(bubbleInterval);
+        bubbleInterval = null;
+      }
+    }
+
+    // ===== ゲーム設定 =====
+    const GAME_TIME = 30;
+
+    const FISH_TYPES = [
+      {
+        name: "ちび青さかな",
+        leftSrc: "fish_blue.png",
+        rightSrc: "fish_blue_flip.png",
+        width: 60,
+        baseSpeed: 4.2,
+        points: 1,
+        weight: 10
+      },
+      {
+        name: "ちび赤さかな",
+        leftSrc: "fish_red.png",
+        rightSrc: "fish_red_flip.png",
+        width: 70,
+        baseSpeed: 3.8,
+        points: 2,
+        weight: 9
+      },
+      {
+        name: "熱帯魚",
+        leftSrc: "fish_tropic.png",
+        rightSrc: "fish_tropic_flip.png",
+        width: 80,
+        baseSpeed: 3.2,
+        points: 3,
+        weight: 8
+      },
+      {
+        name: "くじらさん",
+        leftSrc: "whale_flip.png", // 右→左（左向き）
+        rightSrc: "whale.png",     // 左→右（右向き）
+        width: 120,
+        baseSpeed: 4.0,
+        points: 4,
+        weight: 3
+      },
+      {
+        name: "サメさん",
+        leftSrc: "shark.png",
+        rightSrc: "shark_flip.png",
+        width: 150,
+        baseSpeed: 2.3,
+        points: 6,
+        weight: 1
+      }
+    ];
+
+    const DIFFICULTY_SETTINGS = {
+      easy:   { spawnInterval: 1100, speedMultiplier: 0.85 },
+      normal: { spawnInterval: 800,  speedMultiplier: 1.0  },
+      hard:   { spawnInterval: 600,  speedMultiplier: 1.15 }
+    };
+
+    const scoreValueEl = document.getElementById("scoreValue");
+    const timerBox = document.getElementById("timer");
+    const startBtn  = document.getElementById("startBtn");
+    const difficultySelect = document.getElementById("difficultySelect");
+
+    let score = 0;
+    let timeLeft = GAME_TIME;
+    let timerInterval = null;
+    let fishInterval  = null;
+    let gameRunning   = false;
+    let currentDifficulty = DIFFICULTY_SETTINGS["normal"];
+
+    function updateScoreBox() {
+      scoreValueEl.textContent = score;
+      scoreValueEl.classList.remove("score-pop");
+      void scoreValueEl.offsetWidth;
+      scoreValueEl.classList.add("score-pop");
+    }
+
+    function chooseFishType() {
+      let totalWeight = 0;
+      for (const t of FISH_TYPES) totalWeight += t.weight;
+      let r = Math.random() * totalWeight;
+      for (const t of FISH_TYPES) {
+        if (r < t.weight) return t;
+        r -= t.weight;
+      }
+      return FISH_TYPES[0];
+    }
+
+    // 泡を1つ生成（背景用／ゲーム中どちらでも使う）
+    function createBubble() {
+      const bubble = document.createElement("div");
+      bubble.className = "bubble";
+      const size = 10 + Math.random() * 20;
+      bubble.style.width = size + "px";
+      bubble.style.height = size + "px";
+      bubble.style.left = (5 + Math.random() * 90) + "%";
+      document.body.appendChild(bubble);
+      bubble.addEventListener("animationend", () => bubble.remove());
+    }
+
+    // 魚を1匹生成
+    function createFish() {
+      if (!gameRunning) return;
+
+      const type = chooseFishType();
+      const fish = document.createElement("img");
+      fish.className = "fish";
+      fish.style.width = type.width + "px";
+      fish.dataset.points = String(type.points);
+
+      const maxY = window.innerHeight - type.width - 40;
+      const y = Math.random() * Math.max(maxY, 40) + 20;
+      fish.style.top = y + "px";
+
+      const fromLeft = Math.random() < 0.5;
+      let x = fromLeft ? -type.width - 20 : window.innerWidth + 20;
+      const direction = fromLeft ? 1 : -1;
+      fish.style.left = x + "px";
+
+      if (fromLeft) {
+        fish.src = type.rightSrc;   // 左 → 右
+      } else {
+        fish.src = type.leftSrc;    // 右 → 左
+      }
+
+      document.body.appendChild(fish);
+
+      function onCatch(e) {
+        if (!gameRunning) return;
+        const pts = Number(fish.dataset.points || "1");
+        score += pts;
+        updateScoreBox();
+        playCatchSound(pts);
+        fish.remove();
+        e.stopPropagation();
+      }
+
+      fish.addEventListener("click", onCatch);
+      fish.addEventListener("touchstart", (e) => {
+        e.preventDefault();
+        onCatch(e);
+      }, { passive: false });
+
+      const speed = type.baseSpeed * currentDifficulty.speedMultiplier;
+      function swim() {
+        if (!document.body.contains(fish)) return;
+        if (!gameRunning) { fish.remove(); return; }
+
+        x += direction * speed;
+        fish.style.left = x + "px";
+
+        if (x < -type.width - 40 || x > window.innerWidth + 40) {
+          fish.remove();
+          return;
+        }
+        requestAnimationFrame(swim);
+      }
+      swim();
+    }
+
+    function startTimer() {
+      timeLeft = GAME_TIME;
+      timerBox.textContent = `${timeLeft}秒`;
+      timerInterval = setInterval(() => {
+        timeLeft--;
+        timerBox.textContent = `${timeLeft}秒`;
+        if (timeLeft <= 0) endGame();
+      }, 1000);
+    }
+
+    function startGame() {
+      if (gameRunning) return;
+
+      currentDifficulty = DIFFICULTY_SETTINGS[difficultySelect.value] || DIFFICULTY_SETTINGS["normal"];
+
+      initAudio();
+      if (audioCtx && audioCtx.state === "suspended") {
+        audioCtx.resume();
+      }
+
+      score = 0;
+      updateScoreBox();
+      timeLeft = GAME_TIME;
+      timerBox.textContent = `${timeLeft}秒`;
+
+      gameRunning = true;
+      startBtn.style.display = "none";
+
+      playStartSound();
+      startTimer();
+      startBubbleBGM();
+
+      fishInterval = setInterval(() => {
+        createFish();
+      }, currentDifficulty.spawnInterval);
+
+      createFish();
+    }
+
+    function endGame() {
+      if (!gameRunning) return;
+      gameRunning = false;
+      clearInterval(timerInterval);
+      clearInterval(fishInterval);
+      timerInterval = null;
+      fishInterval = null;
+
+      stopBubbleBGM();
+      playEndSound();
+      alert(`ゲーム終了！ スコア：${score} ポイント`);
+
+      startBtn.style.display = "block";
+      startBtn.style.zIndex = 999;
+    }
+
+    // スタートボタン
+    startBtn.addEventListener("click", () => {
+      initAudio();
+      if (audioCtx && audioCtx.state === "suspended") {
+        audioCtx.resume();
+      }
+      startGame();
+    });
+
+    // ★ 背景用の泡：ゲーム開始前から常に出す ★
+    setInterval(createBubble, 1200);
+  </script>
+
+</body>
+</html>

@@ -121,7 +121,7 @@
       touch-action: none;
     }
 
-    /* スマホ用 左右ボタン */
+    /* スマホ用 左右ボタン（サイズを1/2に） */
     #touchControls {
       position: fixed;
       bottom: 8px;
@@ -133,15 +133,15 @@
     }
 
     .move-btn {
-      width: 64px;
-      height: 64px;
+      width: 32px;
+      height: 32px;
       border-radius: 999px;
       border: none;
       background: radial-gradient(circle at 30% 30%, #e5e7eb, #9ca3af);
       color: #111827;
-      font-size: 1.8rem;
+      font-size: 1.1rem;
       font-weight: 700;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.6);
+      box-shadow: 0 3px 6px rgba(0,0,0,0.6);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -152,7 +152,7 @@
 
     .move-btn:active {
       transform: scale(0.96);
-      box-shadow: 0 2px 6px rgba(0,0,0,0.7);
+      box-shadow: 0 2px 4px rgba(0,0,0,0.7);
     }
   </style>
 </head>
@@ -207,8 +207,31 @@
       const rightBtn = document.getElementById("rightBtn");
       const difficultySelect = document.getElementById("difficultySelect");
 
-      // ← 矢印ボタンに隠れないように、下に余白をとる
-      const BOTTOM_MARGIN = 110;
+      const BOTTOM_MARGIN = 110; // プレイヤーが矢印に隠れないように
+
+      // ==== 効果音用 Web Audio ====
+      let audioCtx = null;
+      function initAudio() {
+        if (!audioCtx) {
+          const AC = window.AudioContext || window.webkitAudioContext;
+          if (AC) {
+            audioCtx = new AC();
+          }
+        }
+      }
+      function playSound(freq = 440, duration = 0.15, type = "sine", volume = 0.2) {
+        if (!audioCtx) return;
+        const ctxA = audioCtx;
+        const osc = ctxA.createOscillator();
+        const gain = ctxA.createGain();
+        osc.type = type;
+        osc.frequency.value = freq;
+        gain.gain.value = volume;
+        osc.connect(gain);
+        gain.connect(ctxA.destination);
+        osc.start();
+        osc.stop(ctxA.currentTime + duration);
+      }
 
       const playerImgs = { a: new Image(), b: new Image(), c: new Image() };
       playerImgs.a.src = "player-a.jpeg";
@@ -225,7 +248,7 @@
         y: 0,
         width: 60,
         height: 60,
-        baseSpeed: 7
+        baseSpeed: 3.5   // ← もともと7だったのを1/2に
       };
 
       function resizeCanvas() {
@@ -315,6 +338,11 @@
       });
 
       startBtn.addEventListener("click", function () {
+        // iOS 対策：ユーザー操作のタイミングで AudioContext を初期化
+        initAudio();
+        if (audioCtx && audioCtx.state === "suspended") {
+          audioCtx.resume();
+        }
         resetGame();
         startGame();
       });
@@ -342,15 +370,18 @@
         if (type === "jiji") {
           height = 60;
           width  = 120;
-          speed *= 4;
+          speed *= 4;      // まずは4倍
         } else if (type === "face") {
           width = 50;
           height = 50;
-          speed *= 2;
+          speed *= 2;      // 顔ブロックは2倍
         } else {
           width = 40 + Math.random() * 40;
           height = 20 + Math.random() * 20;
         }
+
+        // すべてのブロックを1/2のスピードに
+        speed *= 0.5;
 
         const x = Math.random() * (canvas.width - width);
 
@@ -395,6 +426,8 @@
       function gameOver() {
         running = false;
         if (animationId) cancelAnimationFrame(animationId);
+        // 低めのブザー音
+        playSound(220, 0.3, "sawtooth", 0.25);
         alert("ゲームオーバー！ スコア: " + score);
       }
 
@@ -437,6 +470,8 @@
             blocks.splice(i, 1);
             score++;
             scoreValueEl.textContent = score;
+            // スコアアップ時の高いピッ音
+            playSound(880, 0.1, "square", 0.18);
           }
         }
 

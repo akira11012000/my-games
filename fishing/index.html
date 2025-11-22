@@ -7,16 +7,20 @@
   <style>
     * { box-sizing: border-box; }
 
-    body {
+    html, body {
       margin: 0;
       padding: 0;
+      height: 100%;
+    }
+
+    body {
       overflow: hidden;
       font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
-      /* ★ 海の中グラデーション背景 ★ */
+      /* ★ はっきり海の色に ★ */
       background:
         radial-gradient(circle at 20% 10%, rgba(255,255,255,0.35), transparent 55%),
         radial-gradient(circle at 80% 0%, rgba(148,163,184,0.5), transparent 55%),
-        linear-gradient(to bottom, #0ea5e9 0%, #0369a1 40%, #022c5b 100%);
+        linear-gradient(to bottom, #0ea5e9 0%, #0284c7 45%, #022c5b 100%);
       touch-action: manipulation;
       position: relative;
     }
@@ -236,15 +240,20 @@
     let audioCtx = null;
     let bubbleInterval = null;
 
-    function initAudio() {
-      if (!audioCtx) {
-        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    function ensureAudioContext() {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return;
+      if (!audioCtx || audioCtx.state === "closed") {
+        audioCtx = new AC();
       }
     }
 
     function playBeep(freq, durationMs, volume) {
+      ensureAudioContext();
       if (!audioCtx) return;
-      if (audioCtx.state === "suspended") audioCtx.resume();
+      if (audioCtx.state === "suspended") {
+        audioCtx.resume();
+      }
 
       const osc = audioCtx.createOscillator();
       const gain = audioCtx.createGain();
@@ -276,9 +285,13 @@
       playBeep(260, 220, 0.22);
     }
 
-    // ぷくぷくBGM
+    // ぷくぷくBGM（クリックのたびに確実に開始）
     function startBubbleBGM() {
+      ensureAudioContext();
       if (!audioCtx) return;
+      if (audioCtx.state === "suspended") {
+        audioCtx.resume();
+      }
       stopBubbleBGM();
       bubbleInterval = setInterval(() => {
         const f = 220 + Math.random() * 180;
@@ -382,7 +395,7 @@
       return FISH_TYPES[0];
     }
 
-    // 泡を1つ生成（背景用／ゲーム中どちらでも使う）
+    // 背景用の泡
     function createBubble() {
       const bubble = document.createElement("div");
       bubble.className = "bubble";
@@ -437,7 +450,11 @@
         onCatch(e);
       }, { passive: false });
 
-      const speed = type.baseSpeed * currentDifficulty.speedMultiplier;
+      // ★ スコアが上がるほど速くなる ★
+      const base = type.baseSpeed * currentDifficulty.speedMultiplier;
+      const speedBoost = 1 + Math.min(score, 60) / 30; // 0〜60点で 1〜3倍
+      const speed = base * speedBoost;
+
       function swim() {
         if (!document.body.contains(fish)) return;
         if (!gameRunning) { fish.remove(); return; }
@@ -469,7 +486,7 @@
 
       currentDifficulty = DIFFICULTY_SETTINGS[difficultySelect.value] || DIFFICULTY_SETTINGS["normal"];
 
-      initAudio();
+      ensureAudioContext();
       if (audioCtx && audioCtx.state === "suspended") {
         audioCtx.resume();
       }
@@ -511,7 +528,7 @@
 
     // スタートボタン
     startBtn.addEventListener("click", () => {
-      initAudio();
+      ensureAudioContext();
       if (audioCtx && audioCtx.state === "suspended") {
         audioCtx.resume();
       }

@@ -17,7 +17,6 @@
       flex-direction: column;
       height: 100vh;
       overflow: hidden;
-      touch-action: none;
     }
 
     header {
@@ -119,7 +118,7 @@
       background: radial-gradient(circle at top, #0f172a, #020617);
       width: 100%;
       height: 100%;
-      touch-action: none;
+      touch-action: none; /* キャンバス内だけスクロール無効 */
     }
 
     /* スマホ用 左右ボタン */
@@ -223,7 +222,7 @@
     playerImgs.b.src = playerImageFiles.b;
     playerImgs.c.src = playerImageFiles.c;
 
-    // jiji ブロック画像（全プレイヤー共通の危険ブロック）
+    // jiji ブロック画像（全プレイヤー共通）
     const jijiImg = new Image();
     jijiImg.src = "jiji.PNG"; // ファイル名の大文字小文字に注意
 
@@ -246,12 +245,10 @@
 
     window.addEventListener("resize", resizeCanvas);
 
-    // ブロック一覧
     const blocks = [];
     let blockSpawnInterval = 700;
     let lastSpawnTime = 0;
 
-    // 難易度設定
     const DIFFICULTY_SETTINGS = {
       easy:   { spawnInterval: 900, speedMultiplier: 0.9 },
       normal: { spawnInterval: 700, speedMultiplier: 1.2 },
@@ -259,15 +256,14 @@
     };
     let currentDifficulty = DIFFICULTY_SETTINGS.normal;
 
-    // ゲーム状態
     let score = 0;
     let lastTime = 0;
     let running = false;
     let animationId = null;
 
-    // キーボード操作
     const keys = { left: false, right: false };
 
+    // キーボード（PC用）
     document.addEventListener("keydown", (e) => {
       if (e.key === "ArrowLeft" || e.key === "a" || e.key === "A") {
         keys.left = true;
@@ -284,37 +280,51 @@
       }
     });
 
-    // スマホ用 左右ボタン
-    function bindMoveButton(btn, keyName) {
-      const downEvents = ["touchstart", "mousedown"];
-      const upEvents = ["touchend", "touchcancel", "mouseup", "mouseleave"];
-
-      downEvents.forEach(ev => {
-        btn.addEventListener(ev, (e) => {
-          e.preventDefault();
-          keys[keyName] = true;
-        }, { passive: false });
-      });
-
-      upEvents.forEach(ev => {
-        btn.addEventListener(ev, () => {
-          keys[keyName] = false;
-        });
-      });
+    // スマホ用 左右ボタン （できるだけシンプルに）
+    function startMoveLeft(e) {
+      e && e.preventDefault();
+      keys.left = true;
+    }
+    function stopMoveLeft(e) {
+      e && e.preventDefault();
+      keys.left = false;
+    }
+    function startMoveRight(e) {
+      e && e.preventDefault();
+      keys.right = true;
+    }
+    function stopMoveRight(e) {
+      e && e.preventDefault();
+      keys.right = false;
     }
 
-    bindMoveButton(leftBtn, "left");
-    bindMoveButton(rightBtn, "right");
+    leftBtn.addEventListener("touchstart", startMoveLeft, { passive: false });
+    leftBtn.addEventListener("touchend",   stopMoveLeft,  { passive: false });
+    leftBtn.addEventListener("mousedown",  startMoveLeft);
+    leftBtn.addEventListener("mouseup",    stopMoveLeft);
+    leftBtn.addEventListener("mouseleave", stopMoveLeft);
+
+    rightBtn.addEventListener("touchstart", startMoveRight, { passive: false });
+    rightBtn.addEventListener("touchend",   stopMoveRight,  { passive: false });
+    rightBtn.addEventListener("mousedown",  startMoveRight);
+    rightBtn.addEventListener("mouseup",    stopMoveRight);
+    rightBtn.addEventListener("mouseleave", stopMoveRight);
 
     // プレイヤー選択
     playerButtons.forEach((btn) => {
       btn.addEventListener("click", () => {
         const key = btn.dataset.player;
         currentPlayerKey = key;
-
         playerButtons.forEach((b) => b.classList.remove("active"));
         btn.classList.add("active");
       });
+      btn.addEventListener("touchstart", (e) => {
+        e.preventDefault();
+        const key = btn.dataset.player;
+        currentPlayerKey = key;
+        playerButtons.forEach((b) => b.classList.remove("active"));
+        btn.classList.add("active");
+      }, { passive: false });
     });
 
     // 難易度変更
@@ -324,11 +334,15 @@
       blockSpawnInterval = currentDifficulty.spawnInterval;
     });
 
-    // スタート／リスタート
-    startBtn.addEventListener("click", () => {
+    // スタートボタン（タッチ & クリック両対応）
+    function handleStart(e) {
+      if (e) e.preventDefault();
       resetGame();
       startGame();
-    });
+    }
+
+    startBtn.addEventListener("click", handleStart);
+    startBtn.addEventListener("touchstart", handleStart, { passive: false });
 
     function clampPlayer() {
       if (player.x < 0) player.x = 0;
@@ -339,8 +353,6 @@
 
     // ブロック生成
     function spawnBlock() {
-      // 3種類：
-      //  jijiブロック / 他プレイヤー顔ブロック / 通常ブロック
       const r = Math.random();
       let type = "normal"; // "normal" | "player" | "jiji"
 
@@ -355,14 +367,13 @@
 
       let width, height;
       if (type === "jiji") {
-        // ★ jiji は横幅を2倍（高さそのまま）
         height = 60;
-        width  = 120;      // 横長
-        speed *= 4;        // 通常ブロックの4倍、他プレイヤーブロックの2倍
+        width  = 120;    // 横長
+        speed *= 4;      // 通常の4倍・プレイヤーブロックの2倍
       } else if (type === "player") {
         width = 50;
         height = 50;
-        speed *= 2;        // 他プレイヤー顔ブロックは2倍速
+        speed *= 2;      // 他プレイヤー顔ブロックは2倍速
       } else {
         width = 40 + Math.random() * 40;
         height = 20 + Math.random() * 20;
@@ -376,12 +387,11 @@
         width,
         height,
         speed,
-        kind: type,   // "normal" | "player" | "jiji"
+        kind: type,
         playerKey: null,
       };
 
       if (type === "player") {
-        // 自分以外のプレイヤーからランダムに選ぶ
         const others = ["a", "b", "c"].filter(k => k !== currentPlayerKey);
         const pk = others[Math.floor(Math.random() * others.length)];
         block.playerKey = pk;
@@ -450,13 +460,11 @@
         const b = blocks[i];
         b.y += b.speed;
 
-        // プレイヤーと衝突？
         if (rectsCollide(player, b)) {
           gameOver();
           return;
         }
 
-        // 画面外に落ちたらスコア加算
         if (b.y > canvas.height) {
           blocks.splice(i, 1);
           score++;
@@ -471,7 +479,6 @@
     function draw() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-      // プレイヤー（選択中の顔）
       const img = playerImgs[currentPlayerKey];
       if (img && img.complete) {
         ctx.drawImage(img, player.x, player.y, player.width, player.height);
@@ -480,16 +487,12 @@
         ctx.fillRect(player.x, player.y, player.width, player.height);
       }
 
-      // ブロック描画
       for (const b of blocks) {
         if (b.kind === "jiji" && jijiImg.complete) {
-          // ★ 横長 jiji ブロック
           ctx.drawImage(jijiImg, b.x, b.y, b.width, b.height);
         } else if (b.kind === "player" && b.playerKey && playerImgs[b.playerKey].complete) {
-          // 他プレイヤー顔ブロック
           ctx.drawImage(playerImgs[b.playerKey], b.x, b.y, b.width, b.height);
         } else {
-          // 通常ブロック
           ctx.fillStyle = "#38bdf8";
           ctx.fillRect(b.x, b.y, b.width, b.height);
         }

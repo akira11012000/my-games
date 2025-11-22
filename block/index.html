@@ -2,8 +2,8 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>ブロックよけゲーム（iPhone対応・効果音付き）</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ブロックよけゲーム（プレイヤー画像＋jiji）</title>
   <style>
     * { box-sizing: border-box; }
 
@@ -11,556 +11,510 @@
       margin: 0;
       padding: 0;
       font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
-      background: radial-gradient(circle at top, #4f46e5, #020617);
-      min-height: 100vh;
+      background: radial-gradient(circle at top, #1f2937, #020617);
+      color: #e5e7eb;
       display: flex;
-      justify-content: center;
-      align-items: center;
-      color: #0f172a;
-    }
-
-    .game-wrapper {
-      background: #f9fafb;
-      border-radius: 18px;
-      box-shadow: 0 16px 40px rgba(15, 23, 42, 0.6);
-      padding: 18px 18px 20px;
-      width: 95%;
-      max-width: 430px;
-    }
-
-    h1 {
-      margin: 0 0 6px;
-      text-align: center;
-      font-size: 1.5rem;
-      color: #111827;
-    }
-
-    .subtitle {
-      text-align: center;
-      font-size: 0.85rem;
-      color: #6b7280;
-      margin-bottom: 10px;
-      line-height: 1.4;
-    }
-
-    .top-row {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 8px;
-      margin-bottom: 8px;
-      flex-wrap: wrap;
-    }
-
-    .score-box {
-      padding: 6px 10px;
-      background: #eff6ff;
-      border-radius: 999px;
-      font-size: 0.85rem;
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-      color: #1d4ed8;
-      font-weight: 600;
-    }
-
-    .difficulty-box {
-      display: flex;
-      align-items: center;
-      gap: 4px;
-      font-size: 0.85rem;
-    }
-
-    .difficulty-box select {
-      font-size: 0.8rem;
-      padding: 4px 8px;
-      border-radius: 999px;
-      border: 1px solid #d1d5db;
-      background: #ffffff;
-    }
-
-    .buttons {
-      display: flex;
-      gap: 6px;
-    }
-
-    button {
-      border: none;
-      border-radius: 999px;
-      padding: 6px 12px;
-      font-size: 0.8rem;
-      cursor: pointer;
-      transition: transform 0.1s ease, box-shadow 0.1s ease, opacity 0.2s;
-      white-space: nowrap;
-    }
-
-    button:active {
-      transform: translateY(1px);
-      box-shadow: none;
-    }
-
-    #startButton {
-      background: #22c55e;
-      color: #064e3b;
-      box-shadow: 0 3px 10px rgba(34, 197, 94, 0.4);
-    }
-
-    #restartButton {
-      background: #e5e7eb;
-      color: #374151;
-    }
-
-    #restartButton:disabled {
-      opacity: 0.4;
-      cursor: default;
-      box-shadow: none;
-    }
-
-    #gameCanvas {
-      display: block;
-      margin: 6px auto 4px;
-      background: linear-gradient(to bottom, #0b1120, #020617);
-      border-radius: 14px;
-      border: 1px solid #1f2937;
-    }
-
-    #message {
-      text-align: center;
-      margin-top: 4px;
-      min-height: 1.4em;
-      font-size: 0.9rem;
-      color: #111827;
-    }
-
-    .hint {
-      text-align: center;
-      margin-top: 4px;
-      font-size: 0.75rem;
-      color: #6b7280;
-    }
-
-    .touch-controls {
-      margin-top: 10px;
-      display: flex;
-      gap: 10px;
-      justify-content: center;
-    }
-
-    .touch-button {
-      flex: 1;
-      padding: 10px 0;
-      border-radius: 999px;
-      border: none;
-      font-size: 1rem;
-      font-weight: 600;
-      cursor: pointer;
-      background: #e0f2fe;
-      color: #0f172a;
-      box-shadow: 0 3px 10px rgba(30, 64, 175, 0.35);
-      -webkit-touch-callout: none;
-      -webkit-user-select: none;
-      -webkit-tap-highlight-color: rgba(0,0,0,0);
+      flex-direction: column;
+      height: 100vh;
+      overflow: hidden;
       touch-action: none;
     }
 
-    .touch-button:active {
-      transform: translateY(1px);
-      box-shadow: none;
-      background: #bfdbfe;
+    header {
+      padding: 8px 10px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: rgba(15,23,42,0.9);
+      box-shadow: 0 2px 6px rgba(0,0,0,0.7);
+      z-index: 10;
     }
 
-    @media (max-width: 480px) {
-      .game-wrapper {
-        padding: 14px 12px 16px;
-      }
-      #gameCanvas {
-        width: 100%;
-        height: auto;
-      }
+    #title {
+      font-size: 0.95rem;
+      font-weight: 600;
+    }
+
+    #score {
+      font-size: 0.95rem;
+      font-weight: 600;
+    }
+
+    #controls {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      padding: 6px 10px;
+      background: rgba(15,23,42,0.85);
+      box-shadow: 0 2px 6px rgba(0,0,0,0.7);
+      z-index: 9;
+    }
+
+    #playerRow,
+    #difficultyRow {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+      margin-bottom: 2px;
+    }
+
+    #playerButtons {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .player-btn {
+      padding: 4px 10px;
+      border-radius: 999px;
+      border: 1px solid #9ca3af;
+      background: #111827;
+      color: #e5e7eb;
+      font-size: 0.8rem;
+      cursor: pointer;
+    }
+
+    .player-btn.active {
+      background: #facc15;
+      color: #111827;
+      border-color: #f59e0b;
+      font-weight: 700;
+    }
+
+    #startBtn {
+      padding: 4px 12px;
+      border-radius: 999px;
+      border: none;
+      background: linear-gradient(135deg, #22c55e, #16a34a);
+      color: #022c22;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.6);
+    }
+
+    #difficultySelect {
+      padding: 4px 8px;
+      border-radius: 999px;
+      border: 1px solid #9ca3af;
+      background: #111827;
+      color: #e5e7eb;
+      font-size: 0.8rem;
+    }
+
+    #hint {
+      font-size: 0.75rem;
+      color: #9ca3af;
+    }
+
+    #gameContainer {
+      flex: 1;
+      position: relative;
+      overflow: hidden;
+    }
+
+    canvas {
+      display: block;
+      background: radial-gradient(circle at top, #0f172a, #020617);
+      width: 100%;
+      height: 100%;
+      touch-action: none;
+    }
+
+    /* スマホ用 左右ボタン */
+    #touchControls {
+      position: fixed;
+      bottom: 8px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      gap: 16px;
+      z-index: 20;
+    }
+
+    .move-btn {
+      width: 64px;
+      height: 64px;
+      border-radius: 999px;
+      border: none;
+      background: radial-gradient(circle at 30% 30%, #e5e7eb, #9ca3af);
+      color: #111827;
+      font-size: 1.8rem;
+      font-weight: 700;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.6);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    .move-btn:active {
+      transform: scale(0.96);
+      box-shadow: 0 2px 6px rgba(0,0,0,0.7);
     }
   </style>
 </head>
 <body>
-  <div class="game-wrapper">
-    <h1>ブロックよけゲーム</h1>
-    <div class="subtitle">
-      ← → キー または 下のボタンで左右に動かして、<br>
-      落ちてくるブロックをよけ続けよう！
-    </div>
+  <header>
+    <div id="title">ブロックよけゲーム</div>
+    <div id="score">スコア: <span id="scoreValue">0</span></div>
+  </header>
 
-    <div class="top-row">
-      <div class="score-box">
-        🏆 スコア：<span id="scoreValue">0</span>
+  <div id="controls">
+    <div id="playerRow">
+      <span style="font-size:0.8rem;">プレイヤー:</span>
+      <div id="playerButtons">
+        <button class="player-btn active" data-player="a">プレイヤー A</button>
+        <button class="player-btn" data-player="b">プレイヤー B</button>
+        <button class="player-btn" data-player="c">プレイヤー C</button>
       </div>
-
-      <div class="difficulty-box">
-        難易度：
-        <select id="difficultySelect">
-          <option value="easy">かんたん</option>
-          <option value="normal" selected>ふつう</option>
-          <option value="hard">むずかしい</option>
-        </select>
-      </div>
-
-      <div class="buttons">
-        <button id="startButton" onclick="onStartClick()">スタート</button>
-        <button id="restartButton" onclick="onRestartClick()" disabled>リスタート</button>
-      </div>
+      <button id="startBtn">スタート / リスタート</button>
     </div>
-
-    <canvas id="gameCanvas" width="360" height="480"></canvas>
-    <div id="message"></div>
-    <div class="hint">
-      スコアは「生き残った時間」です。高スコアを目指そう！
+    <div id="difficultyRow">
+      <span style="font-size:0.8rem;">難易度:</span>
+      <select id="difficultySelect">
+        <option value="easy">かんたん</option>
+        <option value="normal" selected>ふつう</option>
+        <option value="hard">むずかしい</option>
+      </select>
     </div>
-
-    <div class="touch-controls">
-      <button id="leftBtn" class="touch-button"
-              onmousedown="leftDown()" onmouseup="leftUp()"
-              ontouchstart="leftDown(); return false;"
-              ontouchend="leftUp(); return false;"
-              ontouchcancel="leftUp(); return false;">
-        ◀ LEFT
-      </button>
-      <button id="rightBtn" class="touch-button"
-              onmousedown="rightDown()" onmouseup="rightUp()"
-              ontouchstart="rightDown(); return false;"
-              ontouchend="rightUp(); return false;"
-              ontouchcancel="rightUp(); return false;">
-        RIGHT ▶
-      </button>
+    <div id="hint">
+      PC: ←→ キーで移動 / スマホ: 下の ◀ ▶ ボタンで移動
     </div>
   </div>
 
+  <div id="gameContainer">
+    <canvas id="gameCanvas"></canvas>
+  </div>
+
+  <!-- スマホ用 左右ボタン -->
+  <div id="touchControls">
+    <button id="leftBtn" class="move-btn">◀</button>
+    <button id="rightBtn" class="move-btn">▶</button>
+  </div>
+
   <script>
-    // ========================
-    // 効果音（Web Audio API）
-    // ========================
-    var audioCtx = null;
+    const canvas = document.getElementById("gameCanvas");
+    const ctx = canvas.getContext("2d");
+    const scoreValueEl = document.getElementById("scoreValue");
+    const startBtn = document.getElementById("startBtn");
+    const playerButtons = document.querySelectorAll(".player-btn");
+    const gameContainer = document.getElementById("gameContainer");
+    const leftBtn = document.getElementById("leftBtn");
+    const rightBtn = document.getElementById("rightBtn");
+    const difficultySelect = document.getElementById("difficultySelect");
 
-    function initAudio() {
-      if (audioCtx) return;
-      try {
-        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-      } catch (e) {
-        audioCtx = null; // 非対応環境では音なしで動く
-      }
-    }
-
-    function ensureAudioRunning() {
-      if (!audioCtx) return;
-      if (audioCtx.state === "suspended") {
-        // iPhone Safari では、ユーザー操作中に resume する必要がある
-        audioCtx.resume();
-      }
-    }
-
-    function playBeep(freq, duration, type, volume) {
-      if (!audioCtx) return;
-      ensureAudioRunning();
-
-      var f = freq || 440;
-      var d = duration || 150;
-      var t = type || "square";
-      var v = (typeof volume === "number") ? volume : 0.2;
-
-      var osc = audioCtx.createOscillator();
-      var gain = audioCtx.createGain();
-      osc.type = t;
-      osc.frequency.value = f;
-      gain.gain.value = v;
-
-      osc.connect(gain);
-      gain.connect(audioCtx.destination);
-
-      osc.start();
-      setTimeout(function () {
-        osc.stop();
-      }, d);
-    }
-
-    function playStartSound() {
-      playBeep(660, 100, "square", 0.25);
-      setTimeout(function () {
-        playBeep(880, 140, "square", 0.22);
-      }, 120);
-    }
-
-    function playGameOverSound() {
-      playBeep(330, 200, "sawtooth", 0.22);
-      setTimeout(function () {
-        playBeep(220, 250, "sawtooth", 0.18);
-      }, 220);
-    }
-
-    // ========================
-    // ゲーム本体
-    // ========================
-    var canvas = document.getElementById("gameCanvas");
-    var ctx = canvas.getContext("2d");
-
-    var startButton = document.getElementById("startButton");
-    var restartButton = document.getElementById("restartButton");
-    var scoreValue = document.getElementById("scoreValue");
-    var message = document.getElementById("message");
-    var difficultySelect = document.getElementById("difficultySelect");
-
-    var width = canvas.width;
-    var height = canvas.height;
-
-    var PLAYER_WIDTH = 60;
-    var PLAYER_HEIGHT = 14;
-
-    var DIFFICULTIES = {
-      easy:   { spawnInterval: 70, blockSpeedMin: 1.6, blockSpeedMax: 2.8, playerSpeed: 5   },
-      normal: { spawnInterval: 55, blockSpeedMin: 2.4, blockSpeedMax: 4.0, playerSpeed: 5.5 },
-      hard:   { spawnInterval: 40, blockSpeedMin: 3.2, blockSpeedMax: 5.2, playerSpeed: 6   }
+    // プレイヤー画像（A/B/C）
+    const playerImageFiles = {
+      a: "player-a.jpeg",
+      b: "player-b.jpeg",
+      c: "player-c.jpeg",
     };
 
-    var currentDifficultyKey = "normal";
-    var settings = DIFFICULTIES[currentDifficultyKey];
+    const playerImgs = {
+      a: new Image(),
+      b: new Image(),
+      c: new Image(),
+    };
+    playerImgs.a.src = playerImageFiles.a;
+    playerImgs.b.src = playerImageFiles.b;
+    playerImgs.c.src = playerImageFiles.c;
 
-    var player;
-    var blocks = [];
-    var spawnTimer = 0;
-    var score = 0;
-    var isRunning = false;
-    var isGameOver = false;
-    var lastTime = 0;
-    var loopId = null;
+    // jiji ブロック画像（全プレイヤー共通の危険ブロック）
+    const jijiImg = new Image();
+    jijiImg.src = "jiji.PNG"; // ファイル名の大文字小文字に注意
 
-    var leftPressed = false;
-    var rightPressed = false;
+    let currentPlayerKey = "a";
 
-    function applyDifficulty() {
-      currentDifficultyKey = difficultySelect.value;
-      settings = DIFFICULTIES[currentDifficultyKey];
+    const player = {
+      x: 0,
+      y: 0,
+      width: 60,
+      height: 60,
+      baseSpeed: 7
+    };
+
+    function resizeCanvas() {
+      const rect = gameContainer.getBoundingClientRect();
+      canvas.width = rect.width;
+      canvas.height = rect.height;
+      player.y = canvas.height - player.height - 10;
+    }
+
+    window.addEventListener("resize", resizeCanvas);
+
+    // ブロック一覧
+    const blocks = [];
+    let blockSpawnInterval = 700;
+    let lastSpawnTime = 0;
+
+    // 難易度設定
+    const DIFFICULTY_SETTINGS = {
+      easy:   { spawnInterval: 900, speedMultiplier: 0.9 },
+      normal: { spawnInterval: 700, speedMultiplier: 1.2 },
+      hard:   { spawnInterval: 520, speedMultiplier: 1.7 },
+    };
+    let currentDifficulty = DIFFICULTY_SETTINGS.normal;
+
+    // ゲーム状態
+    let score = 0;
+    let lastTime = 0;
+    let running = false;
+    let animationId = null;
+
+    // キーボード操作
+    const keys = { left: false, right: false };
+
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "ArrowLeft" || e.key === "a" || e.key === "A") {
+        keys.left = true;
+      } else if (e.key === "ArrowRight" || e.key === "d" || e.key === "D") {
+        keys.right = true;
+      }
+    });
+
+    document.addEventListener("keyup", (e) => {
+      if (e.key === "ArrowLeft" || e.key === "a" || e.key === "A") {
+        keys.left = false;
+      } else if (e.key === "ArrowRight" || e.key === "d" || e.key === "D") {
+        keys.right = false;
+      }
+    });
+
+    // スマホ用 左右ボタン
+    function bindMoveButton(btn, keyName) {
+      const downEvents = ["touchstart", "mousedown"];
+      const upEvents = ["touchend", "touchcancel", "mouseup", "mouseleave"];
+
+      downEvents.forEach(ev => {
+        btn.addEventListener(ev, (e) => {
+          e.preventDefault();
+          keys[keyName] = true;
+        }, { passive: false });
+      });
+
+      upEvents.forEach(ev => {
+        btn.addEventListener(ev, () => {
+          keys[keyName] = false;
+        });
+      });
+    }
+
+    bindMoveButton(leftBtn, "left");
+    bindMoveButton(rightBtn, "right");
+
+    // プレイヤー選択
+    playerButtons.forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const key = btn.dataset.player;
+        currentPlayerKey = key;
+
+        playerButtons.forEach((b) => b.classList.remove("active"));
+        btn.classList.add("active");
+      });
+    });
+
+    // 難易度変更
+    difficultySelect.addEventListener("change", () => {
+      const v = difficultySelect.value;
+      currentDifficulty = DIFFICULTY_SETTINGS[v] || DIFFICULTY_SETTINGS.normal;
+      blockSpawnInterval = currentDifficulty.spawnInterval;
+    });
+
+    // スタート／リスタート
+    startBtn.addEventListener("click", () => {
+      resetGame();
+      startGame();
+    });
+
+    function clampPlayer() {
+      if (player.x < 0) player.x = 0;
+      if (player.x + player.width > canvas.width) {
+        player.x = canvas.width - player.width;
+      }
+    }
+
+    // ブロック生成
+    function spawnBlock() {
+      // 3種類：
+      //  jijiブロック / 他プレイヤー顔ブロック / 通常ブロック
+      const r = Math.random();
+      let type = "normal"; // "normal" | "player" | "jiji"
+
+      if (r < 0.15) {
+        type = "jiji";
+      } else if (r < 0.55) {
+        type = "player";
+      }
+
+      const baseFall = 2.5 + Math.random() * 2.5;
+      let speed = baseFall * currentDifficulty.speedMultiplier;
+
+      let width, height;
+      if (type === "jiji") {
+        // ★ jiji は横幅を2倍（高さそのまま）
+        height = 60;
+        width  = 120;      // 横長
+        speed *= 4;        // 通常ブロックの4倍、他プレイヤーブロックの2倍
+      } else if (type === "player") {
+        width = 50;
+        height = 50;
+        speed *= 2;        // 他プレイヤー顔ブロックは2倍速
+      } else {
+        width = 40 + Math.random() * 40;
+        height = 20 + Math.random() * 20;
+      }
+
+      const x = Math.random() * (canvas.width - width);
+
+      const block = {
+        x,
+        y: -60,
+        width,
+        height,
+        speed,
+        kind: type,   // "normal" | "player" | "jiji"
+        playerKey: null,
+      };
+
+      if (type === "player") {
+        // 自分以外のプレイヤーからランダムに選ぶ
+        const others = ["a", "b", "c"].filter(k => k !== currentPlayerKey);
+        const pk = others[Math.floor(Math.random() * others.length)];
+        block.playerKey = pk;
+      }
+
+      blocks.push(block);
     }
 
     function resetGame() {
-      applyDifficulty();
-      player = {
-        x: width / 2 - PLAYER_WIDTH / 2,
-        y: height - 38,
-        w: PLAYER_WIDTH,
-        h: PLAYER_HEIGHT,
-        speed: settings.playerSpeed
-      };
-
-      blocks = [];
-      spawnTimer = 0;
+      cancelAnimationFrame(animationId);
+      blocks.length = 0;
       score = 0;
-      scoreValue.innerHTML = "0";
-      isRunning = false;
-      isGameOver = false;
-      lastTime = Date.now();
-      message.innerHTML = "「スタート」ボタンでゲーム開始。";
+      scoreValueEl.textContent = score;
+      lastSpawnTime = 0;
+      lastTime = 0;
 
-      restartButton.disabled = true;
+      const v = difficultySelect.value;
+      currentDifficulty = DIFFICULTY_SETTINGS[v] || DIFFICULTY_SETTINGS.normal;
+      blockSpawnInterval = currentDifficulty.spawnInterval;
 
-      ctx.clearRect(0, 0, width, height);
-      drawScene();
-    }
-
-    function drawBackground() {
-      ctx.fillStyle = "#020617";
-      ctx.fillRect(0, 0, width, height);
-
-      ctx.fillStyle = "#111827";
-      var i;
-      for (i = 0; i < 40; i++) {
-        var x = (i * 37) % width;
-        var y = (i * 91) % height;
-        ctx.fillRect(x, y, 2, 2);
-      }
-    }
-
-    function drawPlayer() {
-      ctx.fillStyle = "#38bdf8";
-      ctx.fillRect(player.x, player.y, player.w, player.h);
-    }
-
-    function drawBlocks() {
-      var i;
-      ctx.fillStyle = "#f97316";
-      for (i = 0; i < blocks.length; i++) {
-        var b = blocks[i];
-        ctx.fillRect(b.x, b.y, b.w, b.h);
-      }
-    }
-
-    function drawScene() {
-      drawBackground();
-      drawBlocks();
-      drawPlayer();
-    }
-
-    function spawnBlock() {
-      var w = 26 + Math.random() * 40;
-      var x = Math.random() * (width - w);
-      var speed = settings.blockSpeedMin +
-                  Math.random() * (settings.blockSpeedMax - settings.blockSpeedMin);
-
-      blocks.push({ x: x, y: -20, w: w, h: 16, speed: speed });
-    }
-
-    function updateBlocks(delta) {
-      var i;
-      for (i = 0; i < blocks.length; i++) {
-        blocks[i].y += blocks[i].speed * (delta / 16);
-      }
-      var newBlocks = [];
-      for (i = 0; i < blocks.length; i++) {
-        if (blocks[i].y < height + 40) {
-          newBlocks.push(blocks[i]);
-        }
-      }
-      blocks = newBlocks;
-    }
-
-    function handleInput(delta) {
-      var move = player.speed * (delta / 16);
-      if (leftPressed && !rightPressed) {
-        player.x -= move;
-      } else if (rightPressed && !leftPressed) {
-        player.x += move;
-      }
-
-      if (player.x < 0) player.x = 0;
-      if (player.x + player.w > width) player.x = width - player.w;
-    }
-
-    function isCollide(a, b) {
-      return !(
-        a.x + a.w < b.x ||
-        a.x > b.x + b.w ||
-        a.y + a.h < b.y ||
-        a.y > b.y + b.h
-      );
-    }
-
-    function checkCollision() {
-      var i;
-      for (i = 0; i < blocks.length; i++) {
-        var b = blocks[i];
-        if (isCollide(
-          { x: player.x, y: player.y, w: player.w, h: player.h },
-          b
-        )) {
-          return true;
-        }
-      }
-      return false;
+      player.x = canvas.width / 2 - player.width / 2;
+      player.y = canvas.height - player.height - 10;
+      running = true;
     }
 
     function gameOver() {
-      isRunning = false;
-      isGameOver = true;
-      message.innerHTML = "ゲームオーバー！ スコア：" + Math.floor(score);
-      restartButton.disabled = false;
-      if (loopId !== null) {
-        clearInterval(loopId);
-        loopId = null;
-      }
-      playGameOverSound();
+      running = false;
+      cancelAnimationFrame(animationId);
+      alert("ゲームオーバー！ スコア: " + score);
     }
 
-    function gameLoop() {
-      if (!isRunning) return;
+    function rectsCollide(a, b) {
+      return !(
+        a.x + a.width < b.x ||
+        a.x > b.x + b.width ||
+        a.y + a.height < b.y ||
+        a.y > b.y + b.height
+      );
+    }
 
-      var now = Date.now();
-      var delta = now - lastTime;
-      if (delta <= 0) delta = 16;
-      lastTime = now;
+    function update(timestamp) {
+      if (!running) return;
 
-      score += delta / 100;
-      scoreValue.innerHTML = String(Math.floor(score));
+      if (!lastTime) lastTime = timestamp;
+      const delta = timestamp - lastTime;
+      lastTime = timestamp;
 
-      handleInput(delta);
+      // プレイヤー移動
+      const moveSpeed = player.baseSpeed;
+      if (keys.left) {
+        player.x -= moveSpeed;
+      }
+      if (keys.right) {
+        player.x += moveSpeed;
+      }
+      clampPlayer();
 
-      spawnTimer += delta;
-      if (spawnTimer >= settings.spawnInterval * 16) {
+      // ブロック生成
+      if (timestamp - lastSpawnTime > blockSpawnInterval) {
         spawnBlock();
-        spawnTimer = 0;
+        lastSpawnTime = timestamp;
       }
 
-      updateBlocks(delta);
+      // ブロック更新
+      for (let i = blocks.length - 1; i >= 0; i--) {
+        const b = blocks[i];
+        b.y += b.speed;
 
-      if (checkCollision()) {
-        drawScene();
-        gameOver();
-        return;
+        // プレイヤーと衝突？
+        if (rectsCollide(player, b)) {
+          gameOver();
+          return;
+        }
+
+        // 画面外に落ちたらスコア加算
+        if (b.y > canvas.height) {
+          blocks.splice(i, 1);
+          score++;
+          scoreValueEl.textContent = score;
+        }
       }
 
-      drawScene();
+      draw();
+      animationId = requestAnimationFrame(update);
     }
 
-    // キーボード入力
-    document.onkeydown = function(e) {
-      e = e || window.event;
-      var code = e.keyCode || e.which;
-      if (code === 37) {
-        leftPressed = true;
-      } else if (code === 39) {
-        rightPressed = true;
-      }
-    };
+    function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    document.onkeyup = function(e) {
-      e = e || window.event;
-      var code = e.keyCode || e.which;
-      if (code === 37) {
-        leftPressed = false;
-      } else if (code === 39) {
-        rightPressed = false;
-      }
-    };
-
-    // スマホ用ボタン制御
-    function leftDown()  { leftPressed  = true; }
-    function leftUp()    { leftPressed  = false; }
-    function rightDown() { rightPressed = true; }
-    function rightUp()   { rightPressed = false; }
-
-    window.leftDown = leftDown;
-    window.leftUp = leftUp;
-    window.rightDown = rightDown;
-    window.rightUp = rightUp;
-
-    // スタート・リスタート
-    function onStartClick() {
-      initAudio();
-      ensureAudioRunning();     // ← ここが iPhone 対策のポイント
-      if (isRunning) return;
-
-      if (isGameOver) {
-        resetGame();
+      // プレイヤー（選択中の顔）
+      const img = playerImgs[currentPlayerKey];
+      if (img && img.complete) {
+        ctx.drawImage(img, player.x, player.y, player.width, player.height);
+      } else {
+        ctx.fillStyle = "#f97316";
+        ctx.fillRect(player.x, player.y, player.width, player.height);
       }
 
-      isRunning = true;
-      isGameOver = false;
-      lastTime = Date.now();
-      message.innerHTML = "";
-      if (loopId === null) {
-        loopId = setInterval(gameLoop, 16); // 約60fps
+      // ブロック描画
+      for (const b of blocks) {
+        if (b.kind === "jiji" && jijiImg.complete) {
+          // ★ 横長 jiji ブロック
+          ctx.drawImage(jijiImg, b.x, b.y, b.width, b.height);
+        } else if (b.kind === "player" && b.playerKey && playerImgs[b.playerKey].complete) {
+          // 他プレイヤー顔ブロック
+          ctx.drawImage(playerImgs[b.playerKey], b.x, b.y, b.width, b.height);
+        } else {
+          // 通常ブロック
+          ctx.fillStyle = "#38bdf8";
+          ctx.fillRect(b.x, b.y, b.width, b.height);
+        }
       }
-      playStartSound();
     }
 
-    function onRestartClick() {
-      resetGame();
+    function startGame() {
+      running = true;
+      lastTime = 0;
+      lastSpawnTime = 0;
+      animationId = requestAnimationFrame(update);
     }
 
-    window.onStartClick = onStartClick;
-    window.onRestartClick = onRestartClick;
+    function init() {
+      resizeCanvas();
+      player.x = canvas.width / 2 - player.width / 2;
+      player.y = canvas.height - player.height - 10;
 
-    // 難易度変更
-    difficultySelect.onchange = function() {
-      resetGame();
-    };
+      currentDifficulty = DIFFICULTY_SETTINGS[difficultySelect.value] || DIFFICULTY_SETTINGS.normal;
+      blockSpawnInterval = currentDifficulty.spawnInterval;
 
-    // 初期化
-    resetGame();
+      draw();
+    }
+
+    init();
   </script>
 </body>
 </html>

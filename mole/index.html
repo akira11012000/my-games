@@ -225,6 +225,26 @@
       font-size: 0.85rem;
       color: #4b5563;
     }
+
+    /* ---- ここからスマホ用レイアウト調整 ---- */
+    @media (max-width: 600px) {
+      body {
+        align-items: stretch;          /* 上から下へレイアウト */
+        justify-content: flex-start;
+      }
+      .game-wrapper {
+        width: 100vw;                  /* 横いっぱい */
+        height: 100vh;                 /* 縦いっぱい */
+        max-width: none;
+        border-radius: 0;              /* 画面いっぱいにフィット */
+        box-shadow: none;
+        padding: 14px 10px 16px;
+        overflow-y: auto;              /* はみ出す場合はスクロール */
+      }
+      #grid {
+        gap: 6px;
+      }
+    }
   </style>
 </head>
 <body>
@@ -320,9 +340,8 @@
         playBeep(330, 200, "triangle", 0.18);
       }, 180);
     }
-    // ★ 追加：めがねおじさん用の「大きな音」
+    // めがねおじさん用の大きな音
     function playPenaltySound() {
-      // 低くて大きめの音を2発鳴らす
       playBeep(200, 180, "sawtooth", 0.6);
       setTimeout(function () {
         playBeep(120, 200, "square", 0.5);
@@ -456,7 +475,7 @@
         message.textContent = "ナイスヒット！";
         playHitSound();
       } else if (currentType === "bad") {
-        // ★ ここを変更：ペナルティ −5点 & 大きな音
+        // めがねおじさん：ペナルティ −5点 & 大きな音
         score -= 5;
         miss++;
         combo = 0;

@@ -195,6 +195,12 @@
       border-radius: 0 0 999px 999px;
     }
 
+    /* 金色モグラ用（body に .golden を追加） */
+    .mole-body.golden {
+      background: linear-gradient(145deg, #fbbf24, #facc15);
+      box-shadow: 0 4px 0 rgba(161,98,7,0.8);
+    }
+
     .dont-hit-img {
       width: 85%;
       height: 85%;
@@ -226,20 +232,45 @@
       color: #4b5563;
     }
 
-    /* ---- ここからスマホ用レイアウト調整 ---- */
+    /* ヒット時に出るスコア表示 */
+    .hit-score {
+      position: absolute;
+      bottom: 10%;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 0.9rem;
+      font-weight: 700;
+      color: #22c55e;
+      text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+      pointer-events: none;
+      animation: scoreUp 0.6s ease-out forwards;
+    }
+
+    @keyframes scoreUp {
+      from {
+        opacity: 1;
+        transform: translate(-50%, 0);
+      }
+      to {
+        opacity: 0;
+        transform: translate(-50%, -16px);
+      }
+    }
+
+    /* ---- スマホ用レイアウト調整 ---- */
     @media (max-width: 600px) {
       body {
-        align-items: stretch;          /* 上から下へレイアウト */
+        align-items: stretch;
         justify-content: flex-start;
       }
       .game-wrapper {
-        width: 100vw;                  /* 横いっぱい */
-        height: 100vh;                 /* 縦いっぱい */
+        width: 100vw;
+        height: 100vh;
         max-width: none;
-        border-radius: 0;              /* 画面いっぱいにフィット */
+        border-radius: 0;
         box-shadow: none;
         padding: 14px 10px 16px;
-        overflow-y: auto;              /* はみ出す場合はスクロール */
+        overflow-y: auto;
       }
       #grid {
         gap: 6px;
@@ -251,8 +282,8 @@
   <div class="game-wrapper">
     <h1>もぐらたたき</h1>
     <div class="subtitle">
-      もぐらだけを素早くたたこう！<br>
-      メガネのおじさんをたたくと -5 になります。
+      黒モグラは +1点、金モグラは +5点！<br>
+      メガネのおじさんをたたくと -5 点になります。
     </div>
 
     <div class="top-row">
@@ -284,7 +315,7 @@
     <div id="message"></div>
     <div class="hint">
       PC：クリック ／ スマホ：タップ。<br>
-      もぐら以外をたたくとコンボが切れてミスが増えます。
+      金色モグラは 1/5 の確率で出現します。
     </div>
   </div>
 
@@ -331,6 +362,13 @@
     function playHitSound() {
       playBeep(880, 80, "square", 0.25);
     }
+    function playGoldenSound() {
+      // 少し高めの2音
+      playBeep(1100, 80, "square", 0.3);
+      setTimeout(function () {
+        playBeep(1400, 80, "square", 0.25);
+      }, 90);
+    }
     function playMissSound() {
       playBeep(220, 120, "sawtooth", 0.22);
     }
@@ -373,7 +411,8 @@
     // ========= 状態 =========
     var holes = [];
     var currentIndex = -1;
-    var currentType = null; // "mole" or "bad" or null
+    // "mole" / "golden" / "bad" / null
+    var currentType = null;
     var score = 0;
     var timeLeft = GAME_TIME;
     var combo = 0;
@@ -410,6 +449,20 @@
       currentType = null;
     }
 
+    // ヒット時に穴の上にスコアを表示
+    function showHitScore(holeElem, text, color) {
+      var div = document.createElement("div");
+      div.className = "hit-score";
+      div.textContent = text;
+      if (color) div.style.color = color;
+      holeElem.appendChild(div);
+      setTimeout(function () {
+        if (div && div.parentNode) {
+          div.parentNode.removeChild(div);
+        }
+      }, 600);
+    }
+
     function showRandomTarget() {
       clearCurrent();
       var idx = Math.floor(Math.random() * holes.length);
@@ -419,8 +472,10 @@
       var content = document.createElement("div");
       content.className = "hole-content";
 
-      // 一定確率で「叩いてはいけないキャラ」を出す
-      if (Math.random() < currentDifficulty.badRate) {
+      var r = Math.random();
+
+      // まず「ダメなおじさん」かどうか
+      if (r < currentDifficulty.badRate) {
         currentType = "bad";
         var img = document.createElement("img");
         img.src = "dont_hit.png";   // 同じフォルダに置いた画像
@@ -428,9 +483,12 @@
         img.className = "dont-hit-img";
         content.appendChild(img);
       } else {
-        currentType = "mole";
+        // モグラ（黒 or 金）
+        var isGolden = Math.random() < 0.2; // 1/5 の確率で金色
+        currentType = isGolden ? "golden" : "mole";
+
         var body = document.createElement("div");
-        body.className = "mole-body";
+        body.className = "mole-body" + (isGolden ? " golden" : "");
         var face = document.createElement("div");
         face.className = "mole-face";
         var eyeL = document.createElement("div");
@@ -464,16 +522,26 @@
         comboSpan.textContent = combo;
         message.textContent = "はずれ…";
         playMissSound();
+        // スコア表示なし（空振りなので）
         return;
       }
 
       if (currentType === "mole") {
-        score++;
+        score += 1;
         combo++;
         scoreSpan.textContent = score;
         comboSpan.textContent = combo;
-        message.textContent = "ナイスヒット！";
+        message.textContent = "ナイスヒット！ +1";
         playHitSound();
+        showHitScore(this, "+1", "#22c55e");
+      } else if (currentType === "golden") {
+        score += 5;
+        combo++;
+        scoreSpan.textContent = score;
+        comboSpan.textContent = combo;
+        message.textContent = "金モグラ！ +5";
+        playGoldenSound();
+        showHitScore(this, "+5", "#eab308");
       } else if (currentType === "bad") {
         // めがねおじさん：ペナルティ −5点 & 大きな音
         score -= 5;
@@ -484,6 +552,7 @@
         comboSpan.textContent = combo;
         message.textContent = "ペナルティ！ -5点… めがねのおじさんでした。";
         playPenaltySound();
+        showHitScore(this, "-5", "#ef4444");
       }
 
       clearCurrent();

@@ -195,7 +195,7 @@
       border-radius: 0 0 999px 999px;
     }
 
-    /* 金色モグラ用（body に .golden を追加） */
+    /* 金色モグラ用 */
     .mole-body.golden {
       background: linear-gradient(145deg, #fbbf24, #facc15);
       box-shadow: 0 4px 0 rgba(161,98,7,0.8);
@@ -260,8 +260,10 @@
     /* ---- スマホ用レイアウト調整 ---- */
     @media (max-width: 600px) {
       body {
-        align-items: stretch;
-        justify-content: flex-start;
+        /* カードの周囲の緑を消して、画面全体をゲーム用の背景に */
+        background: #f9fafb;
+        display: block;
+        min-height: 100vh;
       }
       .game-wrapper {
         width: 100vw;
@@ -270,6 +272,7 @@
         border-radius: 0;
         box-shadow: none;
         padding: 14px 10px 16px;
+        margin: 0;
         overflow-y: auto;
       }
       #grid {
@@ -363,7 +366,6 @@
       playBeep(880, 80, "square", 0.25);
     }
     function playGoldenSound() {
-      // 少し高めの2音
       playBeep(1100, 80, "square", 0.3);
       setTimeout(function () {
         playBeep(1400, 80, "square", 0.25);
@@ -378,7 +380,6 @@
         playBeep(330, 200, "triangle", 0.18);
       }, 180);
     }
-    // めがねおじさん用の大きな音
     function playPenaltySound() {
       playBeep(200, 180, "sawtooth", 0.6);
       setTimeout(function () {
@@ -411,8 +412,7 @@
     // ========= 状態 =========
     var holes = [];
     var currentIndex = -1;
-    // "mole" / "golden" / "bad" / null
-    var currentType = null;
+    var currentType = null; // "mole" / "golden" / "bad" / null
     var score = 0;
     var timeLeft = GAME_TIME;
     var combo = 0;
@@ -449,7 +449,6 @@
       currentType = null;
     }
 
-    // ヒット時に穴の上にスコアを表示
     function showHitScore(holeElem, text, color) {
       var div = document.createElement("div");
       div.className = "hit-score";
@@ -457,9 +456,7 @@
       if (color) div.style.color = color;
       holeElem.appendChild(div);
       setTimeout(function () {
-        if (div && div.parentNode) {
-          div.parentNode.removeChild(div);
-        }
+        if (div && div.parentNode) div.parentNode.removeChild(div);
       }, 600);
     }
 
@@ -474,17 +471,15 @@
 
       var r = Math.random();
 
-      // まず「ダメなおじさん」かどうか
       if (r < currentDifficulty.badRate) {
         currentType = "bad";
         var img = document.createElement("img");
-        img.src = "dont_hit.png";   // 同じフォルダに置いた画像
+        img.src = "dont_hit.png";
         img.alt = "たたいてはいけないキャラ";
         img.className = "dont-hit-img";
         content.appendChild(img);
       } else {
-        // モグラ（黒 or 金）
-        var isGolden = Math.random() < 0.2; // 1/5 の確率で金色
+        var isGolden = Math.random() < 0.2; // 1/5
         currentType = isGolden ? "golden" : "mole";
 
         var body = document.createElement("div");
@@ -515,14 +510,12 @@
 
       var idx = parseInt(this.dataset.index, 10);
       if (idx !== currentIndex || !currentType) {
-        // 何もいない場所をたたいた → ミス
         miss++;
         combo = 0;
         missSpan.textContent = miss;
         comboSpan.textContent = combo;
         message.textContent = "はずれ…";
         playMissSound();
-        // スコア表示なし（空振りなので）
         return;
       }
 
@@ -543,7 +536,6 @@
         playGoldenSound();
         showHitScore(this, "+5", "#eab308");
       } else if (currentType === "bad") {
-        // めがねおじさん：ペナルティ −5点 & 大きな音
         score -= 5;
         miss++;
         combo = 0;
@@ -563,7 +555,6 @@
       initAudio();
       ensureAudioRunning();
 
-      // 難易度反映
       currentDifficulty = DIFFICULTIES[difficultySelect.value];
 
       isRunning = true;
@@ -626,11 +617,9 @@
     resetButton.onclick = resetGame;
 
     difficultySelect.onchange = function() {
-      // ゲーム中に変えても、次のスタートから反映
       currentDifficulty = DIFFICULTIES[difficultySelect.value];
     };
 
-    // 初期化
     createGrid();
     resetGame();
   </script>

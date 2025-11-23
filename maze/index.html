@@ -319,8 +319,8 @@
       playerImgLoaded = true;
       drawMaze();
     };
-    // ★ここで、同じフォルダの player.png を読み込みます
-    playerImg.src = "player.png";
+    // ★ player.png → player.jpeg に変更 ★
+    playerImg.src = "player.jpeg";
 
     function applyDifficulty() {
       var key = difficultySelect.value;
@@ -448,7 +448,6 @@
       var py = player.row * cellSize;
 
       if (playerImgLoaded) {
-        // 画像をセルにフィットさせて描画
         var margin = cellSize * 0.1;
         ctx.drawImage(
           playerImg,
@@ -458,7 +457,6 @@
           cellSize - margin * 2
         );
       } else {
-        // 画像がまだなら丸で代用
         ctx.fillStyle = "#22c55e";
         ctx.beginPath();
         ctx.arc(
@@ -485,7 +483,7 @@
     }
 
     function movePlayer(dr, dc) {
-      initAudio();          // 最初の操作でAudioContextを用意
+      initAudio();
       ensureAudioRunning();
 
       var newRow = player.row + dr;
@@ -509,7 +507,6 @@
 
       drawMaze();
 
-      // ゴール判定
       if (player.row === goal.row && player.col === goal.col) {
         message.innerHTML = "🎉 ゴール！ おめでとうございます！（手数：" + stepCount + "）";
         playGoalSound();
@@ -519,7 +516,6 @@
       }
     }
 
-    // キーボード操作
     document.onkeydown = function(e) {
       e = e || window.event;
       var code = e.keyCode || e.which;
@@ -534,13 +530,11 @@
       }
     };
 
-    // スマホ用ボタン
     btnUp.onclick = function() { movePlayer(-1, 0); };
     btnDown.onclick = function() { movePlayer(1, 0); };
     btnLeft.onclick = function() { movePlayer(0, -1); };
     btnRight.onclick = function() { movePlayer(0, 1); };
 
-    // 「新しい迷路」ボタン
     newMazeButton.onclick = function() {
       initAudio();
       ensureAudioRunning();
@@ -550,19 +544,16 @@
       playNewMazeSound();
     };
 
-    // 「スタートに戻る」ボタン
     resetPlayerButton.onclick = function() {
       resetPlayer();
     };
 
-    // 難易度を変えたら迷路を作り直す
     difficultySelect.onchange = function() {
       applyDifficulty();
       generateMaze();
       resetPlayer();
     };
 
-    // 初期化
     applyDifficulty();
     generateMaze();
     resetPlayer();

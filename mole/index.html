@@ -2,7 +2,9 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8" />
-  <title>もぐらたたきゲーム（改良版）</title>
+  <title>もぐらたたき　黒＋金</title>
+  <!-- ★スマホ用のviewport（これが無いとメディアクエリが効かない） -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <style>
     * { box-sizing: border-box; }
 
@@ -195,7 +197,7 @@
       border-radius: 0 0 999px 999px;
     }
 
-    /* 金色モグラ用 */
+    /* 金色モグラ */
     .mole-body.golden {
       background: linear-gradient(145deg, #fbbf24, #facc15);
       box-shadow: 0 4px 0 rgba(161,98,7,0.8);
@@ -260,8 +262,7 @@
     /* ---- スマホ用レイアウト調整 ---- */
     @media (max-width: 600px) {
       body {
-        /* カードの周囲の緑を消して、画面全体をゲーム用の背景に */
-        background: #f9fafb;
+        background: #f9fafb;    /* 緑背景を消して全面ゲーム背景に */
         display: block;
         min-height: 100vh;
       }
@@ -412,7 +413,8 @@
     // ========= 状態 =========
     var holes = [];
     var currentIndex = -1;
-    var currentType = null; // "mole" / "golden" / "bad" / null
+    // "mole" / "golden" / "bad" / null
+    var currentType = null;
     var score = 0;
     var timeLeft = GAME_TIME;
     var combo = 0;
@@ -449,6 +451,7 @@
       currentType = null;
     }
 
+    // ヒット時に穴の上にスコアを表示してすぐ消す
     function showHitScore(holeElem, text, color) {
       var div = document.createElement("div");
       div.className = "hit-score";
@@ -472,6 +475,7 @@
       var r = Math.random();
 
       if (r < currentDifficulty.badRate) {
+        // めがねおじさん
         currentType = "bad";
         var img = document.createElement("img");
         img.src = "dont_hit.png";
@@ -479,6 +483,7 @@
         img.className = "dont-hit-img";
         content.appendChild(img);
       } else {
+        // 黒 or 金モグラ
         var isGolden = Math.random() < 0.2; // 1/5
         currentType = isGolden ? "golden" : "mole";
 
@@ -510,6 +515,7 @@
 
       var idx = parseInt(this.dataset.index, 10);
       if (idx !== currentIndex || !currentType) {
+        // 空振り
         miss++;
         combo = 0;
         missSpan.textContent = miss;
